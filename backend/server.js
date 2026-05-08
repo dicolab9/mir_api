@@ -100,6 +100,82 @@ function decodeBase62(texto) {
   return resultado.toString();
 }
 
+function gerarDigitosCPF(base) {
+
+  //-----------------------------------
+  // GARANTE 9 DÍGITOS
+  //-----------------------------------
+
+  base = base.padStart(9, '0');
+
+  //-----------------------------------
+  // PRIMEIRO DÍGITO
+  //-----------------------------------
+
+  let soma1 = 0;
+
+  for (let i = 0; i < 9; i++) {
+    soma1 += parseInt(base[i]) * (10 - i);
+  }
+
+  let resto1 = (soma1 * 10) % 11;
+
+  if (resto1 === 10) {
+    resto1 = 0;
+  }
+
+  //-----------------------------------
+  // SEGUNDO DÍGITO
+  //-----------------------------------
+
+  let soma2 = 0;
+
+  const cpfParcial = base + resto1;
+
+  for (let i = 0; i < 10; i++) {
+    soma2 += parseInt(cpfParcial[i]) * (11 - i);
+  }
+
+  let resto2 = (soma2 * 10) % 11;
+
+  if (resto2 === 10) {
+    resto2 = 0;
+  }
+
+  //-----------------------------------
+  // RETORNA DV
+  //-----------------------------------
+
+  return `${resto1}${resto2}`;
+}
+
+function reconstruirCPF(cpfCompactado) {
+
+  //-----------------------------------
+  // DECODIFICA BASE62
+  //-----------------------------------
+
+  let base = decodeBase62(cpfCompactado);
+
+  //-----------------------------------
+  // GARANTE 9 DÍGITOS
+  //-----------------------------------
+
+  base = base.padStart(9, '0');
+
+  //-----------------------------------
+  // GERA VERIFICADORES
+  //-----------------------------------
+
+  const dv = gerarDigitosCPF(base);
+
+  //-----------------------------------
+  // CPF COMPLETO
+  //-----------------------------------
+
+  return `${base}${dv}`;
+}
+
 //--------------------------------------------------
 // REMOVE VERIFICADORES CPF
 //--------------------------------------------------
@@ -371,6 +447,147 @@ app.get('/decode/:valor', (req, res) => {
     compactado: valor,
     cpf_base: cpf
   });
+});
+
+//--------------------------------------------------
+// LISTAR REGISTROS
+//--------------------------------------------------
+app.get('/listar', async (req, res) => {
+
+  try {
+
+    //-----------------------------------
+    // INÍCIO DO TEMPO
+    //-----------------------------------
+
+    const inicio = Date.now();
+
+    //-----------------------------------
+    // BUSCA REGISTROS MIR
+    //-----------------------------------
+
+    const pessoas = await pool.query(`
+      SELECT *
+      FROM pessoas_mir
+      ORDER BY id DESC
+      LIMIT 100
+    `);
+
+    //-----------------------------------
+    // RECONSTRUÇÃO
+    //-----------------------------------
+
+    const resultado = [];
+
+    for (const pessoa of pessoas.rows) {
+
+      //-----------------------------------
+      // NOME
+      //-----------------------------------
+
+      const nome = await pool.query(`
+        SELECT valor
+        FROM lexical_nome
+        WHERE token = $1
+      `, [pessoa.nome_token]);
+
+      //-----------------------------------
+      // SOBRENOME
+      //-----------------------------------
+
+      const sobrenome = await pool.query(`
+        SELECT valor
+        FROM lexical_sobrenome
+        WHERE token = $1
+      `, [pessoa.sobrenome_token]);
+
+      //-----------------------------------
+      // RUA
+      //-----------------------------------
+
+      const rua = await pool.query(`
+        SELECT valor
+        FROM lexical_rua
+        WHERE token = $1
+      `, [pessoa.rua_token]);
+
+      //-----------------------------------
+      // CIDADE
+      //-----------------------------------
+
+      const cidade = await pool.query(`
+        SELECT valor
+        FROM lexical_cidade
+        WHERE token = $1
+      `, [pessoa.cidade_token]);
+
+      //-----------------------------------
+      // CEP
+      //-----------------------------------
+
+      const cep = await pool.query(`
+        SELECT valor
+        FROM lexical_cep
+        WHERE token = $1
+      `, [pessoa.cep_token]);
+
+      //-----------------------------------
+      // MONTA OBJETO
+      //-----------------------------------
+
+      resultado.push({
+
+        id: pessoa.id,
+
+        nome:
+          nome.rows[0]?.valor || '',
+
+        sobrenome:
+          sobrenome.rows[0]?.valor || '',
+
+        rua:
+          rua.rows[0]?.valor || '',
+
+        casa:
+          pessoa.casa,
+
+        cidade:
+          cidade.rows[0]?.valor || '',
+
+        cep:
+          cep.rows[0]?.valor || '',
+
+        cpf:
+          reconstruirCPF(pessoa.cpf_mne)
+      });
+    }
+
+    //-----------------------------------
+    // TEMPO FINAL
+    //-----------------------------------
+
+    const fim = Date.now();
+
+    const tempoExecucao = fim - inicio;
+
+    //-----------------------------------
+    // RESPOSTA
+    //-----------------------------------
+
+    res.json({
+      total_registros: resultado.length,
+      tempo_execucao_ms: tempoExecucao,
+      dados: resultado
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      erro: 'Erro ao listar registros'
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
