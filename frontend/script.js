@@ -49,6 +49,73 @@ async function estatisticas() {
     JSON.stringify(data, null, 2);
 }
 
+//--------------------------------------------------
+// LISTAR REGISTROS
+//--------------------------------------------------
+async function listar() {
+
+  const response = await fetch('/listar');
+
+  const data = await response.json();
+
+  let html = `
+    <h2>Listagem MIR</h2>
+
+    <p>
+      <b>Total:</b>
+      ${data.total_registros}
+    </p>
+
+    <p>
+      <b>Tempo:</b>
+      ${data.tempo_execucao_ms} ms
+    </p>
+
+    <hr>
+  `;
+
+  data.dados.forEach(pessoa => {
+
+    html += `
+      <div style="
+        border:1px solid #ccc;
+        padding:10px;
+        margin-bottom:10px;
+      ">
+
+        <p>
+          <b>Nome:</b>
+          ${pessoa.nome} ${pessoa.sobrenome}
+        </p>
+
+        <p>
+          <b>Rua:</b>
+          ${pessoa.rua}, ${pessoa.casa}
+        </p>
+
+        <p>
+          <b>Cidade:</b>
+          ${pessoa.cidade}
+        </p>
+
+        <p>
+          <b>CEP:</b>
+          ${pessoa.cep}
+        </p>
+
+        <p>
+          <b>CPF:</b>
+          ${pessoa.cpf}
+        </p>
+
+      </div>
+    `;
+  });
+
+  document.getElementById('listagem')
+    .innerHTML = html;
+}
+
 // async function cadastrar() {
 
 //   const body = {
