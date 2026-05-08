@@ -197,6 +197,86 @@ async function excluir(id) {
   listar();
 }
 
+//--------------------------------------------------
+// GERAR CPF VÁLIDO
+//--------------------------------------------------
+
+function gerarCPF() {
+
+  //-----------------------------------
+  // GERA 9 DÍGITOS
+  //-----------------------------------
+
+  let base = '';
+
+  for (let i = 0; i < 9; i++) {
+
+    base += Math.floor(Math.random() * 10);
+  }
+
+  //-----------------------------------
+  // PRIMEIRO DÍGITO
+  //-----------------------------------
+
+  let soma1 = 0;
+
+  for (let i = 0; i < 9; i++) {
+
+    soma1 +=
+      parseInt(base[i]) * (10 - i);
+  }
+
+  let dv1 = (soma1 * 10) % 11;
+
+  if (dv1 === 10) {
+    dv1 = 0;
+  }
+
+  //-----------------------------------
+  // SEGUNDO DÍGITO
+  //-----------------------------------
+
+  let soma2 = 0;
+
+  const parcial = base + dv1;
+
+  for (let i = 0; i < 10; i++) {
+
+    soma2 +=
+      parseInt(parcial[i]) * (11 - i);
+  }
+
+  let dv2 = (soma2 * 10) % 11;
+
+  if (dv2 === 10) {
+    dv2 = 0;
+  }
+
+  //-----------------------------------
+  // CPF FINAL
+  //-----------------------------------
+
+  const cpf =
+    `${base}${dv1}${dv2}`;
+
+  //-----------------------------------
+  // FORMATA
+  //-----------------------------------
+
+  const formatado =
+    cpf.replace(
+      /(\d{3})(\d{3})(\d{3})(\d{2})/,
+      '$1.$2.$3-$4'
+    );
+
+  //-----------------------------------
+  // PREENCHE INPUT
+  //-----------------------------------
+
+  document.getElementById('cpf').value =
+    formatado;
+}
+
 // async function cadastrar() {
 
 //   const body = {
