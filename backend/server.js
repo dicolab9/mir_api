@@ -590,6 +590,54 @@ app.get('/listar', async (req, res) => {
   }
 });
 
+//--------------------------------------------------
+// EXCLUIR REGISTRO
+//--------------------------------------------------
+
+app.delete('/excluir/:id', async (req, res) => {
+
+  try {
+
+    const id = req.params.id;
+
+    //-----------------------------------
+    // REMOVE DA TABELA MIR
+    //-----------------------------------
+
+    await pool.query(`
+      DELETE FROM pessoas_mir
+      WHERE id = $1
+    `, [id]);
+
+    //-----------------------------------
+    // OPCIONAL:
+    // remover também da tabela normal
+    //-----------------------------------
+
+    await pool.query(`
+      DELETE FROM pessoas_normal
+      WHERE id = $1
+    `, [id]);
+
+    //-----------------------------------
+    // RESPOSTA
+    //-----------------------------------
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Registro excluído'
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      erro: 'Erro ao excluir registro'
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
