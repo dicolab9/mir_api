@@ -9,7 +9,15 @@ const app = express();
 
 app.disable('x-powered-by');
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://mir-api-6cip.onrender.com/'
+  ],
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
