@@ -1,10 +1,44 @@
 const pool = require('./db');
 require('dotenv').config();
 
+const lexicalTables = [
+  { name: 'lexical_nome', size: 100 },
+  { name: 'lexical_sobrenome', size: 100 },
+  { name: 'lexical_rua', size: 150 },
+  { name: 'lexical_cidade', size: 100 },
+  { name: 'lexical_cep', size: 20 }
+];
+
+const indexes = [
+  'nome_token',
+  'sobrenome_token',
+  'rua_token',
+  'cidade_token',
+  'cep_token'
+];
+
+async function createLexicalTable(tableName, size) {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ${tableName} (
+      id SERIAL PRIMARY KEY,
+      token VARCHAR(10) UNIQUE,
+      valor VARCHAR(${size}) UNIQUE,
+      frequencia INT DEFAULT 1
+    );
+  `);
+
+  console.log(`✓ ${tableName} criada`);
+}
+
+async function createIndex(column) {
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_${column}
+    ON pessoas_mir(${column});
+  `);
+}
+
 async function migrate() {
-
   try {
-
     console.log('------------------------------------');
     console.log('INICIANDO MIGRATIONS MIR + MNE');
     console.log('------------------------------------');
@@ -12,111 +46,41 @@ async function migrate() {
     //--------------------------------------------------
     // TABELA NORMAL
     //--------------------------------------------------
-
     await pool.query(`
       CREATE TABLE IF NOT EXISTS pessoas_normal (
-          id SERIAL PRIMARY KEY,
-          nome VARCHAR(100),
-          sobrenome VARCHAR(100),
-          rua VARCHAR(150),
-          casa VARCHAR(20),
-          cidade VARCHAR(100),
-          cep VARCHAR(20),
-          cpf VARCHAR(14)
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(100),
+        sobrenome VARCHAR(100),
+        rua VARCHAR(150),
+        casa VARCHAR(20),
+        cidade VARCHAR(100),
+        cep VARCHAR(20),
+        cpf VARCHAR(14)
       );
     `);
 
     console.log('✓ pessoas_normal criada');
 
     //--------------------------------------------------
-    // LEXICAL NOME
+    // TABELAS LEXICAIS
     //--------------------------------------------------
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS lexical_nome (
-          id SERIAL PRIMARY KEY,
-          token VARCHAR(10) UNIQUE,
-          valor VARCHAR(100) UNIQUE,
-          frequencia INT DEFAULT 1
-      );
-    `);
-
-    console.log('✓ lexical_nome criada');
-
-    //--------------------------------------------------
-    // LEXICAL SOBRENOME
-    //--------------------------------------------------
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS lexical_sobrenome (
-          id SERIAL PRIMARY KEY,
-          token VARCHAR(10) UNIQUE,
-          valor VARCHAR(100) UNIQUE,
-          frequencia INT DEFAULT 1
-      );
-    `);
-
-    console.log('✓ lexical_sobrenome criada');
-
-    //--------------------------------------------------
-    // LEXICAL RUA
-    //--------------------------------------------------
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS lexical_rua (
-          id SERIAL PRIMARY KEY,
-          token VARCHAR(10) UNIQUE,
-          valor VARCHAR(150) UNIQUE,
-          frequencia INT DEFAULT 1
-      );
-    `);
-
-    console.log('✓ lexical_rua criada');
-
-    //--------------------------------------------------
-    // LEXICAL CIDADE
-    //--------------------------------------------------
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS lexical_cidade (
-          id SERIAL PRIMARY KEY,
-          token VARCHAR(10) UNIQUE,
-          valor VARCHAR(100) UNIQUE,
-          frequencia INT DEFAULT 1
-      );
-    `);
-
-    console.log('✓ lexical_cidade criada');
-
-    //--------------------------------------------------
-    // LEXICAL CEP
-    //--------------------------------------------------
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS lexical_cep (
-          id SERIAL PRIMARY KEY,
-          token VARCHAR(10) UNIQUE,
-          valor VARCHAR(20) UNIQUE,
-          frequencia INT DEFAULT 1
-      );
-    `);
-
-    console.log('✓ lexical_cep criada');
+    for (const table of lexicalTables) {
+      await createLexicalTable(table.name, table.size);
+    }
 
     //--------------------------------------------------
     // TABELA MIR
     //--------------------------------------------------
-
     await pool.query(`
       CREATE TABLE IF NOT EXISTS pessoas_mir (
-          id SERIAL PRIMARY KEY,
-          nome_token VARCHAR(10),
-          sobrenome_token VARCHAR(10),
-          rua_token VARCHAR(10),
-          casa VARCHAR(20),
-          cidade_token VARCHAR(10),
-          cep_token VARCHAR(10),
-          cpf_mne VARCHAR(20)
+        id SERIAL PRIMARY KEY,
+        nome_token VARCHAR(10),
+        sobrenome_token VARCHAR(10),
+        rua_token VARCHAR(10),
+        casa VARCHAR(20),
+        cidade_token VARCHAR(10),
+        cep_token VARCHAR(10),
+        cpf_mne VARCHAR(20)
       );
     `);
 
@@ -125,47 +89,22 @@ async function migrate() {
     //--------------------------------------------------
     // ÍNDICES
     //--------------------------------------------------
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_nome_token
-      ON pessoas_mir(nome_token);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_sobrenome_token
-      ON pessoas_mir(sobrenome_token);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_rua_token
-      ON pessoas_mir(rua_token);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_cidade_token
-      ON pessoas_mir(cidade_token);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_cep_token
-      ON pessoas_mir(cep_token);
-    `);
+    for (const column of indexes) {
+      await createIndex(column);
+    }
 
     console.log('✓ índices criados');
 
     //--------------------------------------------------
     // FINALIZAÇÃO
     //--------------------------------------------------
-
     console.log('------------------------------------');
     console.log('MIGRATIONS FINALIZADAS');
     console.log('------------------------------------');
 
   } catch (error) {
-
     console.error('ERRO NAS MIGRATIONS');
     console.error(error);
-    
   }
 }
 
