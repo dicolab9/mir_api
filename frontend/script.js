@@ -223,7 +223,7 @@ function gerarCPF() {
   for (let i = 0; i < 9; i++) {
 
     soma1 +=
-      parseInt(base[i]) * (10 - i);
+      Number.parseInt(base[i]) * (10 - i);
   }
 
   let dv1 = (soma1 * 10) % 11;
@@ -243,7 +243,7 @@ function gerarCPF() {
   for (let i = 0; i < 10; i++) {
 
     soma2 +=
-      parseInt(parcial[i]) * (11 - i);
+      Number.parseInt(parcial[i]) * (11 - i);
   }
 
   let dv2 = (soma2 * 10) % 11;
