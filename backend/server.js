@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const path = require('node:path');
 const pool = require('./db');
 require('dotenv').config();
 require('./migrations');
@@ -22,7 +22,7 @@ async function gerarToken(tabela, prefixo) {
     FROM ${tabela}
   `);
 
-  const total = parseInt(result.rows[0].total) + 1;
+  const total = Number.parseInt(result.rows[0].total) + 1;
 
   return `${prefixo}${total}`;
 }
@@ -115,7 +115,7 @@ function gerarDigitosCPF(base) {
   let soma1 = 0;
 
   for (let i = 0; i < 9; i++) {
-    soma1 += parseInt(base[i]) * (10 - i);
+    soma1 += Number.parseInt(base[i]) * (10 - i);
   }
 
   let resto1 = (soma1 * 10) % 11;
@@ -133,7 +133,7 @@ function gerarDigitosCPF(base) {
   const cpfParcial = base + resto1;
 
   for (let i = 0; i < 10; i++) {
-    soma2 += parseInt(cpfParcial[i]) * (11 - i);
+    soma2 += Number.parseInt(cpfParcial[i]) * (11 - i);
   }
 
   let resto2 = (soma2 * 10) % 11;
@@ -405,9 +405,9 @@ app.get('/estatisticas', async (req, res) => {
       ) AS bytes
     `);
 
-    const normalBytes = parseInt(normal.rows[0].bytes);
-    const mirBytes = parseInt(mir.rows[0].bytes);
-    const lexicalBytes = parseInt(lexical.rows[0].bytes);
+    const normalBytes = Number.parseInt(normal.rows[0].bytes);
+    const mirBytes = Number.parseInt(mir.rows[0].bytes);
+    const lexicalBytes = Number.parseInt(lexical.rows[0].bytes);
 
     const totalMir = mirBytes + lexicalBytes;
 
