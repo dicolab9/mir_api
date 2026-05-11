@@ -1,70 +1,190 @@
 //--------------------------------------------------
-// CADASTRAR
+// GERAR CPF VÁLIDO
+//--------------------------------------------------
+
+function gerarCPF() {
+
+  let numeros = '';
+
+  //-----------------------------------
+  // GERA 9 DÍGITOS
+  //-----------------------------------
+
+  for (let i = 0; i < 9; i++) {
+    numeros += Math.floor(Math.random() * 10);
+  }
+
+  //-----------------------------------
+  // PRIMEIRO DÍGITO
+  //-----------------------------------
+
+  let soma1 = 0;
+
+  for (let i = 0; i < 9; i++) {
+    soma1 += Number.parseInt(numeros[i]) * (10 - i);
+  }
+
+  let resto1 = (soma1 * 10) % 11;
+
+  if (resto1 === 10) {
+    resto1 = 0;
+  }
+
+  //-----------------------------------
+  // SEGUNDO DÍGITO
+  //-----------------------------------
+
+  let soma2 = 0;
+
+  const parcial = numeros + resto1;
+
+  for (let i = 0; i < 10; i++) {
+    soma2 += Number.parseInt(parcial[i]) * (11 - i);
+  }
+
+  let resto2 = (soma2 * 10) % 11;
+
+  if (resto2 === 10) {
+    resto2 = 0;
+  }
+
+  //-----------------------------------
+  // CPF FINAL
+  //-----------------------------------
+
+  const cpfFinal =
+    numeros +
+    resto1.toString() +
+    resto2.toString();
+
+  //-----------------------------------
+  // PREENCHE INPUT
+  //-----------------------------------
+
+  document.getElementById('cpf').value = cpfFinal;
+}
+
+//--------------------------------------------------
+// BUSCAR CEP VIA VIACEP
+//--------------------------------------------------
+
+async function buscarCEP() {
+
+  //-----------------------------------
+  // PEGA CEP
+  //-----------------------------------
+
+  let cep = document
+    .getElementById('cep')
+    .value
+    .replace(/\D/g, '');
+
+  //-----------------------------------
+  // VALIDA
+  //-----------------------------------
+
+  if (cep.length !== 8) {
+    return;
+  }
+
+  try {
+
+    //-----------------------------------
+    // CONSULTA API
+    //-----------------------------------
+
+    const response = await fetch(
+      `https://viacep.com.br/ws/${cep}/json/`
+    );
+
+    const data = await response.json();
+
+    //-----------------------------------
+    // CEP NÃO ENCONTRADO
+    //-----------------------------------
+
+    if (data.erro) {
+      alert('CEP não encontrado');
+      return;
+    }
+
+    //-----------------------------------
+    // PREENCHE CAMPOS
+    //-----------------------------------
+
+    document.getElementById('rua').value =
+      data.logradouro || '';
+
+    document.getElementById('cidade').value =
+      data.localidade || '';
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert('Erro ao consultar CEP');
+  }
+}
+
+//--------------------------------------------------
+// CADASTRO
 //--------------------------------------------------
 
 async function cadastrar() {
 
   const body = {
-
-    nome:
-      document.getElementById('nome').value,
-
-    sobrenome:
-      document.getElementById('sobrenome').value,
-
-    rua:
-      document.getElementById('rua').value,
-
-    casa:
-      document.getElementById('casa').value,
-
-    cidade:
-      document.getElementById('cidade').value,
-
-    cep:
-      document.getElementById('cep').value,
-
-    cpf:
-      document.getElementById('cpf').value
+    nome: document.getElementById('nome').value,
+    sobrenome: document.getElementById('sobrenome').value,
+    rua: document.getElementById('rua').value,
+    casa: document.getElementById('casa').value,
+    cidade: document.getElementById('cidade').value,
+    cep: document.getElementById('cep').value,
+    cpf: document.getElementById('cpf').value
   };
 
-  //-----------------------------------
-  // CADASTRO
-  //-----------------------------------
-
   const response = await fetch('/cadastro', {
-
     method: 'POST',
-
     headers: {
       'Content-Type': 'application/json'
     },
-
     body: JSON.stringify(body)
   });
 
   const data = await response.json();
 
-  //-----------------------------------
-  // RESULTADO
-  //-----------------------------------
-
   document.getElementById('resultado').innerHTML = `
-
     <h2>Cadastro Realizado</h2>
 
     <h3>Modo Tradicional</h3>
-
-    <pre>
-${JSON.stringify(data.normal, null, 2)}
-    </pre>
+    <pre>${JSON.stringify(data.normal, null, 2)}</pre>
 
     <h3>MIR + MNE</h3>
-
-    <pre>
-${JSON.stringify(data.mir, null, 2)}
-    </pre>
+    <pre>${JSON.stringify(data.mir, null, 2)}</pre>
   `;
+
+  //-----------------------------------
+  // LIMPA CAMPOS
+  //-----------------------------------
+
+  document.getElementById('nome').value = '';
+
+  document.getElementById('sobrenome').value = '';
+
+  document.getElementById('rua').value = '';
+
+  document.getElementById('casa').value = '';
+
+  document.getElementById('cidade').value = '';
+
+  document.getElementById('cep').value = '';
+
+  document.getElementById('cpf').value = '';
+
+  //-----------------------------------
+  // FOCO NO PRIMEIRO INPUT
+  //-----------------------------------
+
+  document.getElementById('nome').focus();
 
   //-----------------------------------
   // ATUALIZA LISTAGEM
@@ -100,24 +220,16 @@ async function listar() {
   const container =
     document.getElementById('lista');
 
-  //-----------------------------------
-  // LIMPA CONTAINER
-  //-----------------------------------
-
   container.innerHTML = '';
-
-  //-----------------------------------
-  // MONTA CARDS
-  //-----------------------------------
 
   data.dados.forEach(pessoa => {
 
     container.innerHTML += `
-
       <div class="card">
 
         <h3>
-          ${pessoa.nome} ${pessoa.sobrenome}
+          ${pessoa.nome}
+          ${pessoa.sobrenome}
         </h3>
 
         <p>
@@ -148,23 +260,9 @@ async function listar() {
     `;
   });
 
-  //-----------------------------------
-  // TEMPO
-  //-----------------------------------
-
   document.getElementById('tempo').innerHTML = `
-
-    <p>
-      <b>Total:</b>
-      ${data.total_registros}
-    </p>
-
-    <p>
-      <b>Tempo de execução:</b>
-      ${data.tempo_execucao_ms} ms
-    </p>
-
-    <hr>
+    Tempo de execução:
+    ${data.tempo_execucao_ms} ms
   `;
 }
 
@@ -182,97 +280,9 @@ async function excluir(id) {
     return;
   }
 
-  //-----------------------------------
-  // DELETE
-  //-----------------------------------
-
   await fetch(`/excluir/${id}`, {
     method: 'DELETE'
   });
 
-  //-----------------------------------
-  // RECARREGA LISTA
-  //-----------------------------------
-
   listar();
-}
-
-//--------------------------------------------------
-// GERAR CPF VÁLIDO
-//--------------------------------------------------
-
-function gerarCPF() {
-
-  //-----------------------------------
-  // GERA 9 DÍGITOS
-  //-----------------------------------
-
-  let base = '';
-
-  for (let i = 0; i < 9; i++) {
-
-    base += Math.floor(Math.random() * 10);
-  }
-
-  //-----------------------------------
-  // PRIMEIRO DÍGITO
-  //-----------------------------------
-
-  let soma1 = 0;
-
-  for (let i = 0; i < 9; i++) {
-
-    soma1 +=
-      Number.parseInt(base[i]) * (10 - i);
-  }
-
-  let dv1 = (soma1 * 10) % 11;
-
-  if (dv1 === 10) {
-    dv1 = 0;
-  }
-
-  //-----------------------------------
-  // SEGUNDO DÍGITO
-  //-----------------------------------
-
-  let soma2 = 0;
-
-  const parcial = base + dv1;
-
-  for (let i = 0; i < 10; i++) {
-
-    soma2 +=
-      Number.parseInt(parcial[i]) * (11 - i);
-  }
-
-  let dv2 = (soma2 * 10) % 11;
-
-  if (dv2 === 10) {
-    dv2 = 0;
-  }
-
-  //-----------------------------------
-  // CPF FINAL
-  //-----------------------------------
-
-  const cpf =
-    `${base}${dv1}${dv2}`;
-
-  //-----------------------------------
-  // FORMATA
-  //-----------------------------------
-
-  const formatado =
-    cpf.replace(
-      /(\d{3})(\d{3})(\d{3})(\d{2})/,
-      '$1.$2.$3-$4'
-    );
-
-  //-----------------------------------
-  // PREENCHE INPUT
-  //-----------------------------------
-
-  document.getElementById('cpf').value =
-    formatado;
 }
