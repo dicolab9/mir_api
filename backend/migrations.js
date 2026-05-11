@@ -161,14 +161,11 @@ async function migrate() {
     console.log('MIGRATIONS FINALIZADAS');
     console.log('------------------------------------');
 
-    //process.exit();
-
   } catch (error) {
 
     console.error('ERRO NAS MIGRATIONS');
     console.error(error);
-
-    //process.exit(1);
+    
   }
 }
 
