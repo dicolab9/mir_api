@@ -21,7 +21,7 @@ function gerarCPF() {
   let soma1 = 0;
 
   for (let i = 0; i < 9; i++) {
-    soma1 += parseInt(numeros[i]) * (10 - i);
+    soma1 += Number.parseInt(numeros[i]) * (10 - i);
   }
 
   let resto1 = (soma1 * 10) % 11;
@@ -39,7 +39,7 @@ function gerarCPF() {
   const parcial = numeros + resto1;
 
   for (let i = 0; i < 10; i++) {
-    soma2 += parseInt(parcial[i]) * (11 - i);
+    soma2 += Number.parseInt(parcial[i]) * (11 - i);
   }
 
   let resto2 = (soma2 * 10) % 11;
