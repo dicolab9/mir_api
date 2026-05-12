@@ -12,26 +12,26 @@ const app = express();
 
 app.disable('x-powered-by');
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   'http://localhost:3000',
   'https://mir-api-6cip.onrender.com'
-];
+]);
 
 app.use(cors({
   origin: function (origin, callback) {
 
-    // Permite requisições sem origin (Postman, mobile, etc)
     if (!origin) {
       return callback(null, true);
     }
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.has(origin)) {
       return callback(null, true);
     }
 
     return callback(new Error('Origem não permitida pelo CORS'));
   }
 }));
+
 app.use(express.json());
 
 app.use(
