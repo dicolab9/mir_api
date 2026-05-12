@@ -1,25 +1,23 @@
+//server.js aprimorado para separar sobrenome, cidade e ruas.
+
 const express = require('express');
 const cors = require('cors');
-const path = require('node:path');
+const path = require('path');
 const pool = require('./db');
+
 require('dotenv').config();
 require('./migrations');
 
 const app = express();
 
-app.disable('x-powered-by');
-
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://mir-api-6cip.onrender.com/'
-  ],
-  methods: ['GET', 'POST'],
-  credentials: true
-}));
-
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend')));
+
+app.use(
+  express.static(
+    path.join(__dirname, '../frontend')
+  )
+);
 
 //--------------------------------------------------
 // TOKENS
@@ -32,7 +30,8 @@ async function gerarToken(tabela, prefixo) {
     FROM ${tabela}
   `);
 
-  const total = Number.parseInt(result.rows[0].total) + 1;
+  const total =
+    parseInt(result.rows[0].total) + 1;
 
   return `${prefixo}${total}`;
 }
@@ -47,15 +46,33 @@ async function obterOuCriarToken(
   valor
 ) {
 
+  //-----------------------------------
+  // LIMPA
+  //-----------------------------------
+
+  valor = valor.trim();
+
+  //-----------------------------------
+  // BUSCA
+  //-----------------------------------
+
   const busca = await pool.query(`
     SELECT *
     FROM ${tabela}
     WHERE LOWER(valor) = LOWER($1)
   `, [valor]);
 
+  //-----------------------------------
+  // EXISTE
+  //-----------------------------------
+
   if (busca.rows.length > 0) {
 
     const registro = busca.rows[0];
+
+    //-----------------------------------
+    // SOMA FREQUÊNCIA
+    //-----------------------------------
 
     await pool.query(`
       UPDATE ${tabela}
@@ -66,33 +83,159 @@ async function obterOuCriarToken(
     return registro.token;
   }
 
-  const novoToken = await gerarToken(tabela, prefixo);
+  //-----------------------------------
+  // NOVO TOKEN
+  //-----------------------------------
+
+  const novoToken =
+    await gerarToken(
+      tabela,
+      prefixo
+    );
+
+  //-----------------------------------
+  // INSERT
+  //-----------------------------------
 
   await pool.query(`
     INSERT INTO ${tabela}
-    (token, valor)
+    (
+      token,
+      valor
+    )
     VALUES ($1, $2)
-  `, [novoToken, valor]);
+  `, [
+    novoToken,
+    valor
+  ]);
 
   return novoToken;
 }
 
 //--------------------------------------------------
-// MNE - ENCODING CPF
+// TOKENIZA TEXTO EM PARTES
 //--------------------------------------------------
 
-const baseChars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+async function tokenizarPartes(
+  tabela,
+  prefixo,
+  texto
+) {
+
+  //-----------------------------------
+  // DIVIDE EM PARTES
+  //-----------------------------------
+
+  const partes = texto
+    .trim()
+    .split(/\s+/);
+
+  //-----------------------------------
+  // TOKENS
+  //-----------------------------------
+
+  const tokens = [];
+
+  //-----------------------------------
+  // TOKENIZA CADA PALAVRA
+  //-----------------------------------
+
+  for (const parte of partes) {
+
+    const token =
+      await obterOuCriarToken(
+        tabela,
+        prefixo,
+        parte
+      );
+
+    tokens.push(token);
+  }
+
+  //-----------------------------------
+  // RETORNA STRING
+  //-----------------------------------
+
+  return tokens.join('|');
+}
+
+//--------------------------------------------------
+// RECONSTRUIR TEXO
+//--------------------------------------------------
+
+async function reconstruirTexto(
+  tabela,
+  tokensString
+) {
+
+  //-----------------------------------
+  // SEM TOKEN
+  //-----------------------------------
+
+  if (!tokensString) {
+    return '';
+  }
+
+  //-----------------------------------
+  // SPLIT TOKENS
+  //-----------------------------------
+
+  const tokens =
+    tokensString.split('|');
+
+  //-----------------------------------
+  // RESULTADO
+  //-----------------------------------
+
+  const palavras = [];
+
+  //-----------------------------------
+  // RECONSTRÓI
+  //-----------------------------------
+
+  for (const token of tokens) {
+
+    const busca = await pool.query(`
+      SELECT valor
+      FROM ${tabela}
+      WHERE token = $1
+    `, [token]);
+
+    palavras.push(
+      busca.rows[0]?.valor || ''
+    );
+  }
+
+  //-----------------------------------
+  // TEXTO FINAL
+  //-----------------------------------
+
+  return palavras.join(' ');
+}
+
+//--------------------------------------------------
+// MNE BASE62
+//--------------------------------------------------
+
+const baseChars =
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 function encodeBase62(numero) {
 
   numero = BigInt(numero);
 
-  if (numero === 0n) return '0';
+  if (numero === 0n) {
+    return '0';
+  }
 
   let resultado = '';
 
   while (numero > 0n) {
-    resultado = baseChars[numero % 62n] + resultado;
+
+    resultado =
+      baseChars[numero % 62n]
+      + resultado;
+
     numero = numero / 62n;
   }
 
@@ -104,17 +247,22 @@ function decodeBase62(texto) {
   let resultado = 0n;
 
   for (let char of texto) {
-    resultado = resultado * 62n + BigInt(baseChars.indexOf(char));
+
+    resultado =
+      resultado * 62n +
+      BigInt(
+        baseChars.indexOf(char)
+      );
   }
 
   return resultado.toString();
 }
 
-function gerarDigitosCPF(base) {
+//--------------------------------------------------
+// GERA DÍGITOS CPF
+//--------------------------------------------------
 
-  //-----------------------------------
-  // GARANTE 9 DÍGITOS
-  //-----------------------------------
+function gerarDigitosCPF(base) {
 
   base = base.padStart(9, '0');
 
@@ -125,10 +273,14 @@ function gerarDigitosCPF(base) {
   let soma1 = 0;
 
   for (let i = 0; i < 9; i++) {
-    soma1 += Number.parseInt(base[i]) * (10 - i);
+
+    soma1 +=
+      parseInt(base[i]) *
+      (10 - i);
   }
 
-  let resto1 = (soma1 * 10) % 11;
+  let resto1 =
+    (soma1 * 10) % 11;
 
   if (resto1 === 10) {
     resto1 = 0;
@@ -140,54 +292,64 @@ function gerarDigitosCPF(base) {
 
   let soma2 = 0;
 
-  const cpfParcial = base + resto1;
+  const parcial =
+    base + resto1;
 
   for (let i = 0; i < 10; i++) {
-    soma2 += Number.parseInt(cpfParcial[i]) * (11 - i);
+
+    soma2 +=
+      parseInt(parcial[i]) *
+      (11 - i);
   }
 
-  let resto2 = (soma2 * 10) % 11;
+  let resto2 =
+    (soma2 * 10) % 11;
 
   if (resto2 === 10) {
     resto2 = 0;
   }
 
-  //-----------------------------------
-  // RETORNA DV
-  //-----------------------------------
-
   return `${resto1}${resto2}`;
 }
 
-function reconstruirCPF(cpfCompactado) {
+//--------------------------------------------------
+// RECONSTRUIR CPF
+//--------------------------------------------------
+
+function reconstruirCPF(
+  cpfCompactado
+) {
 
   //-----------------------------------
-  // DECODIFICA BASE62
+  // DECODIFICA
   //-----------------------------------
 
-  let base = decodeBase62(cpfCompactado);
+  let base =
+    decodeBase62(cpfCompactado);
 
   //-----------------------------------
   // GARANTE 9 DÍGITOS
   //-----------------------------------
 
-  base = base.padStart(9, '0');
+  base =
+    base.padStart(9, '0');
 
   //-----------------------------------
-  // GERA VERIFICADORES
+  // GERA DV
   //-----------------------------------
 
-  const dv = gerarDigitosCPF(base);
+  const dv =
+    gerarDigitosCPF(base);
 
   //-----------------------------------
-  // CPF COMPLETO
+  // CPF FINAL
   //-----------------------------------
 
   return `${base}${dv}`;
 }
 
 //--------------------------------------------------
-// REMOVE VERIFICADORES CPF
+// REMOVE DV CPF
 //--------------------------------------------------
 
 function obterBaseCPF(cpf) {
@@ -198,11 +360,17 @@ function obterBaseCPF(cpf) {
 }
 
 //--------------------------------------------------
-// ROTA HOME
+// HOME
 //--------------------------------------------------
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+
+  res.sendFile(
+    path.join(
+      __dirname,
+      '../frontend/index.html'
+    )
+  );
 });
 
 //--------------------------------------------------
@@ -223,9 +391,9 @@ app.post('/cadastro', async (req, res) => {
       cpf
     } = req.body;
 
-    //---------------------------------------------
-    // SALVA NORMAL
-    //---------------------------------------------
+    //-----------------------------------
+    // TABELA NORMAL
+    //-----------------------------------
 
     await pool.query(`
       INSERT INTO pessoas_normal
@@ -238,7 +406,10 @@ app.post('/cadastro', async (req, res) => {
         cep,
         cpf
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      VALUES
+      (
+        $1,$2,$3,$4,$5,$6,$7
+      )
     `, [
       nome,
       sobrenome,
@@ -249,51 +420,58 @@ app.post('/cadastro', async (req, res) => {
       cpf
     ]);
 
-    //---------------------------------------------
-    // TOKENS MIR
-    //---------------------------------------------
+    //-----------------------------------
+    // TOKENIZAÇÃO COMPOSICIONAL
+    //-----------------------------------
 
-    const nomeToken = await obterOuCriarToken(
-      'lexical_nome',
-      'NA',
-      nome
-    );
+    const nomeToken =
+      await tokenizarPartes(
+        'lexical_nome',
+        'NA',
+        nome
+      );
 
-    const sobrenomeToken = await obterOuCriarToken(
-      'lexical_sobrenome',
-      'SA',
-      sobrenome
-    );
+    const sobrenomeToken =
+      await tokenizarPartes(
+        'lexical_sobrenome',
+        'SA',
+        sobrenome
+      );
 
-    const ruaToken = await obterOuCriarToken(
-      'lexical_rua',
-      'RA',
-      rua
-    );
+    const ruaToken =
+      await tokenizarPartes(
+        'lexical_rua',
+        'RA',
+        rua
+      );
 
-    const cidadeToken = await obterOuCriarToken(
-      'lexical_cidade',
-      'DA',
-      cidade
-    );
+    const cidadeToken =
+      await tokenizarPartes(
+        'lexical_cidade',
+        'DA',
+        cidade
+      );
 
-    const cepToken = await obterOuCriarToken(
-      'lexical_cep',
-      'CA',
-      cep
-    );
+    const cepToken =
+      await tokenizarPartes(
+        'lexical_cep',
+        'CA',
+        cep
+      );
 
-    //---------------------------------------------
+    //-----------------------------------
     // MNE CPF
-    //---------------------------------------------
+    //-----------------------------------
 
-    const cpfBase = obterBaseCPF(cpf);
+    const cpfBase =
+      obterBaseCPF(cpf);
 
-    const cpfCompactado = encodeBase62(cpfBase);
+    const cpfCompactado =
+      encodeBase62(cpfBase);
 
-    //---------------------------------------------
-    // SALVA MIR
-    //---------------------------------------------
+    //-----------------------------------
+    // INSERT MIR
+    //-----------------------------------
 
     await pool.query(`
       INSERT INTO pessoas_mir
@@ -306,7 +484,10 @@ app.post('/cadastro', async (req, res) => {
         cep_token,
         cpf_mne
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      VALUES
+      (
+        $1,$2,$3,$4,$5,$6,$7
+      )
     `, [
       nomeToken,
       sobrenomeToken,
@@ -317,20 +498,24 @@ app.post('/cadastro', async (req, res) => {
       cpfCompactado
     ]);
 
-    //---------------------------------------------
+    //-----------------------------------
     // RESPOSTA
-    //---------------------------------------------
+    //-----------------------------------
 
     res.json({
+
       sucesso: true,
+
       normal: {
         nome,
         sobrenome,
         rua,
+        casa,
         cidade,
         cep,
         cpf
       },
+
       mir: {
         nomeToken,
         sobrenomeToken,
@@ -342,8 +527,148 @@ app.post('/cadastro', async (req, res) => {
     });
 
   } catch (error) {
+
     console.error(error);
-    res.status(500).json({ erro: 'Erro interno' });
+
+    res.status(500).json({
+      erro: 'Erro interno'
+    });
+  }
+});
+
+//--------------------------------------------------
+// LISTAR
+//--------------------------------------------------
+
+app.get('/listar', async (req, res) => {
+
+  try {
+
+    //-----------------------------------
+    // TEMPO INICIAL
+    //-----------------------------------
+
+    const inicio = Date.now();
+
+    //-----------------------------------
+    // BUSCA
+    //-----------------------------------
+
+    const pessoas =
+      await pool.query(`
+        SELECT *
+        FROM pessoas_mir
+        ORDER BY id DESC
+        LIMIT 100
+      `);
+
+    //-----------------------------------
+    // RESULTADO
+    //-----------------------------------
+
+    const resultado = [];
+
+    //-----------------------------------
+    // LOOP
+    //-----------------------------------
+
+    for (const pessoa of pessoas.rows) {
+
+      //-----------------------------------
+      // RECONSTRUÇÃO
+      //-----------------------------------
+
+      const nome =
+        await reconstruirTexto(
+          'lexical_nome',
+          pessoa.nome_token
+        );
+
+      const sobrenome =
+        await reconstruirTexto(
+          'lexical_sobrenome',
+          pessoa.sobrenome_token
+        );
+
+      const rua =
+        await reconstruirTexto(
+          'lexical_rua',
+          pessoa.rua_token
+        );
+
+      const cidade =
+        await reconstruirTexto(
+          'lexical_cidade',
+          pessoa.cidade_token
+        );
+
+      const cep =
+        await reconstruirTexto(
+          'lexical_cep',
+          pessoa.cep_token
+        );
+
+      //-----------------------------------
+      // CPF
+      //-----------------------------------
+
+      const cpf =
+        reconstruirCPF(
+          pessoa.cpf_mne
+        );
+
+      //-----------------------------------
+      // PUSH
+      //-----------------------------------
+
+      resultado.push({
+
+        id: pessoa.id,
+
+        nome,
+
+        sobrenome,
+
+        rua,
+
+        casa: pessoa.casa,
+
+        cidade,
+
+        cep,
+
+        cpf
+      });
+    }
+
+    //-----------------------------------
+    // TEMPO FINAL
+    //-----------------------------------
+
+    const fim = Date.now();
+
+    //-----------------------------------
+    // RESPOSTA
+    //-----------------------------------
+
+    res.json({
+
+      total_registros:
+        resultado.length,
+
+      tempo_execucao_ms:
+        fim - inicio,
+
+      dados: resultado
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      erro: 'Erro ao listar'
+    });
   }
 });
 
@@ -355,239 +680,155 @@ app.get('/estatisticas', async (req, res) => {
 
   try {
 
-    const normal = await pool.query(`
-      SELECT COALESCE(
-        SUM(
-          OCTET_LENGTH(nome) +
-          OCTET_LENGTH(sobrenome) +
-          OCTET_LENGTH(rua) +
-          OCTET_LENGTH(casa) +
-          OCTET_LENGTH(cidade) +
-          OCTET_LENGTH(cep) +
-          OCTET_LENGTH(cpf)
-        ), 0
-      ) AS bytes
-      FROM pessoas_normal
-    `);
+    const normal =
+      await pool.query(`
+        SELECT COALESCE(
+          SUM(
+            OCTET_LENGTH(nome) +
+            OCTET_LENGTH(sobrenome) +
+            OCTET_LENGTH(rua) +
+            OCTET_LENGTH(casa) +
+            OCTET_LENGTH(cidade) +
+            OCTET_LENGTH(cep) +
+            OCTET_LENGTH(cpf)
+          ),
+          0
+        ) AS bytes
+        FROM pessoas_normal
+      `);
 
-    const mir = await pool.query(`
-      SELECT COALESCE(
-        SUM(
-          OCTET_LENGTH(nome_token) +
-          OCTET_LENGTH(sobrenome_token) +
-          OCTET_LENGTH(rua_token) +
-          OCTET_LENGTH(casa) +
-          OCTET_LENGTH(cidade_token) +
-          OCTET_LENGTH(cep_token) +
-          OCTET_LENGTH(cpf_mne)
-        ), 0
-      ) AS bytes
-      FROM pessoas_mir
-    `);
+    const mir =
+      await pool.query(`
+        SELECT COALESCE(
+          SUM(
+            OCTET_LENGTH(nome_token) +
+            OCTET_LENGTH(sobrenome_token) +
+            OCTET_LENGTH(rua_token) +
+            OCTET_LENGTH(casa) +
+            OCTET_LENGTH(cidade_token) +
+            OCTET_LENGTH(cep_token) +
+            OCTET_LENGTH(cpf_mne)
+          ),
+          0
+        ) AS bytes
+        FROM pessoas_mir
+      `);
 
-    const lexical = await pool.query(`
-      SELECT
-      (
+    const lexical =
+      await pool.query(`
+        SELECT
         (
-          SELECT COALESCE(SUM(OCTET_LENGTH(token)+OCTET_LENGTH(valor)),0)
-          FROM lexical_nome
-        )
-        +
-        (
-          SELECT COALESCE(SUM(OCTET_LENGTH(token)+OCTET_LENGTH(valor)),0)
-          FROM lexical_sobrenome
-        )
-        +
-        (
-          SELECT COALESCE(SUM(OCTET_LENGTH(token)+OCTET_LENGTH(valor)),0)
-          FROM lexical_rua
-        )
-        +
-        (
-          SELECT COALESCE(SUM(OCTET_LENGTH(token)+OCTET_LENGTH(valor)),0)
-          FROM lexical_cidade
-        )
-        +
-        (
-          SELECT COALESCE(SUM(OCTET_LENGTH(token)+OCTET_LENGTH(valor)),0)
-          FROM lexical_cep
-        )
-      ) AS bytes
-    `);
+          (
+            SELECT COALESCE(
+              SUM(
+                OCTET_LENGTH(token)
+                +
+                OCTET_LENGTH(valor)
+              ),
+              0
+            )
+            FROM lexical_nome
+          )
+          +
+          (
+            SELECT COALESCE(
+              SUM(
+                OCTET_LENGTH(token)
+                +
+                OCTET_LENGTH(valor)
+              ),
+              0
+            )
+            FROM lexical_sobrenome
+          )
+          +
+          (
+            SELECT COALESCE(
+              SUM(
+                OCTET_LENGTH(token)
+                +
+                OCTET_LENGTH(valor)
+              ),
+              0
+            )
+            FROM lexical_rua
+          )
+          +
+          (
+            SELECT COALESCE(
+              SUM(
+                OCTET_LENGTH(token)
+                +
+                OCTET_LENGTH(valor)
+              ),
+              0
+            )
+            FROM lexical_cidade
+          )
+          +
+          (
+            SELECT COALESCE(
+              SUM(
+                OCTET_LENGTH(token)
+                +
+                OCTET_LENGTH(valor)
+              ),
+              0
+            )
+            FROM lexical_cep
+          )
+        ) AS bytes
+      `);
 
-    const normalBytes = Number.parseInt(normal.rows[0].bytes);
-    const mirBytes = Number.parseInt(mir.rows[0].bytes);
-    const lexicalBytes = Number.parseInt(lexical.rows[0].bytes);
+    //-----------------------------------
+    // CÁLCULOS
+    //-----------------------------------
 
-    const totalMir = mirBytes + lexicalBytes;
+    const normalBytes =
+      parseInt(normal.rows[0].bytes);
+
+    const mirBytes =
+      parseInt(mir.rows[0].bytes);
+
+    const lexicalBytes =
+      parseInt(lexical.rows[0].bytes);
+
+    const totalMir =
+      mirBytes + lexicalBytes;
 
     let economia = 0;
 
     if (normalBytes > 0) {
+
       economia = (
-        100 - ((totalMir / normalBytes) * 100)
+        100 -
+        (
+          (totalMir / normalBytes)
+          * 100
+        )
       ).toFixed(2);
     }
-
-    res.json({
-      normal_bytes: normalBytes,
-      mir_bytes: mirBytes,
-      lexical_bytes: lexicalBytes,
-      total_mir: totalMir,
-      economia_percentual: economia
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ erro: 'Erro interno' });
-  }
-});
-
-//--------------------------------------------------
-// DECODE CPF
-//--------------------------------------------------
-
-app.get('/decode/:valor', (req, res) => {
-
-  const valor = req.params.valor;
-
-  const cpf = decodeBase62(valor);
-
-  res.json({
-    compactado: valor,
-    cpf_base: cpf
-  });
-});
-
-//--------------------------------------------------
-// LISTAR REGISTROS
-//--------------------------------------------------
-app.get('/listar', async (req, res) => {
-
-  try {
-
-    //-----------------------------------
-    // INÍCIO DO TEMPO
-    //-----------------------------------
-
-    const inicio = Date.now();
-
-    //-----------------------------------
-    // BUSCA REGISTROS MIR
-    //-----------------------------------
-
-    const pessoas = await pool.query(`
-      SELECT *
-      FROM pessoas_mir
-      ORDER BY id DESC
-      LIMIT 100
-    `);
-
-    //-----------------------------------
-    // RECONSTRUÇÃO
-    //-----------------------------------
-
-    const resultado = [];
-
-    for (const pessoa of pessoas.rows) {
-
-      //-----------------------------------
-      // NOME
-      //-----------------------------------
-
-      const nome = await pool.query(`
-        SELECT valor
-        FROM lexical_nome
-        WHERE token = $1
-      `, [pessoa.nome_token]);
-
-      //-----------------------------------
-      // SOBRENOME
-      //-----------------------------------
-
-      const sobrenome = await pool.query(`
-        SELECT valor
-        FROM lexical_sobrenome
-        WHERE token = $1
-      `, [pessoa.sobrenome_token]);
-
-      //-----------------------------------
-      // RUA
-      //-----------------------------------
-
-      const rua = await pool.query(`
-        SELECT valor
-        FROM lexical_rua
-        WHERE token = $1
-      `, [pessoa.rua_token]);
-
-      //-----------------------------------
-      // CIDADE
-      //-----------------------------------
-
-      const cidade = await pool.query(`
-        SELECT valor
-        FROM lexical_cidade
-        WHERE token = $1
-      `, [pessoa.cidade_token]);
-
-      //-----------------------------------
-      // CEP
-      //-----------------------------------
-
-      const cep = await pool.query(`
-        SELECT valor
-        FROM lexical_cep
-        WHERE token = $1
-      `, [pessoa.cep_token]);
-
-      //-----------------------------------
-      // MONTA OBJETO
-      //-----------------------------------
-
-      resultado.push({
-
-        id: pessoa.id,
-
-        nome:
-          nome.rows[0]?.valor || '',
-
-        sobrenome:
-          sobrenome.rows[0]?.valor || '',
-
-        rua:
-          rua.rows[0]?.valor || '',
-
-        casa:
-          pessoa.casa,
-
-        cidade:
-          cidade.rows[0]?.valor || '',
-
-        cep:
-          cep.rows[0]?.valor || '',
-
-        cpf:
-          reconstruirCPF(pessoa.cpf_mne)
-      });
-    }
-
-    //-----------------------------------
-    // TEMPO FINAL
-    //-----------------------------------
-
-    const fim = Date.now();
-
-    const tempoExecucao = fim - inicio;
 
     //-----------------------------------
     // RESPOSTA
     //-----------------------------------
 
     res.json({
-      total_registros: resultado.length,
-      tempo_execucao_ms: tempoExecucao,
-      dados: resultado
+
+      normal_bytes:
+        normalBytes,
+
+      mir_bytes:
+        mirBytes,
+
+      lexical_bytes:
+        lexicalBytes,
+
+      total_mir:
+        totalMir,
+
+      economia_percentual:
+        economia
     });
 
   } catch (error) {
@@ -595,23 +836,24 @@ app.get('/listar', async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      erro: 'Erro ao listar registros'
+      erro: 'Erro estatísticas'
     });
   }
 });
 
 //--------------------------------------------------
-// EXCLUIR REGISTRO
+// EXCLUIR
 //--------------------------------------------------
 
 app.delete('/excluir/:id', async (req, res) => {
 
   try {
 
-    const id = req.params.id;
+    const id =
+      req.params.id;
 
     //-----------------------------------
-    // REMOVE DA TABELA MIR
+    // REMOVE MIR
     //-----------------------------------
 
     await pool.query(`
@@ -620,8 +862,7 @@ app.delete('/excluir/:id', async (req, res) => {
     `, [id]);
 
     //-----------------------------------
-    // OPCIONAL:
-    // remover também da tabela normal
+    // REMOVE NORMAL
     //-----------------------------------
 
     await pool.query(`
@@ -634,8 +875,11 @@ app.delete('/excluir/:id', async (req, res) => {
     //-----------------------------------
 
     res.json({
+
       sucesso: true,
-      mensagem: 'Registro excluído'
+
+      mensagem:
+        'Registro excluído'
     });
 
   } catch (error) {
@@ -643,14 +887,21 @@ app.delete('/excluir/:id', async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      erro: 'Erro ao excluir registro'
+      erro: 'Erro exclusão'
     });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+//--------------------------------------------------
+// SERVER
+//--------------------------------------------------
+
+const PORT =
+  process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
 
+  console.log(`
+Servidor rodando na porta ${PORT}
+  `);
+});
