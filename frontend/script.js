@@ -229,7 +229,7 @@ async function estatisticas() {
       data: {
         labels: ['Economia MIR', 'Tamanho restante'],
         datasets: [{
-          data: [parseFloat(economiaPerc), 100 - parseFloat(economiaPerc)],
+          data: [Number.parseFloat(economiaPerc), 100 - Number.parseFloat(economiaPerc)],
           backgroundColor: [
             'rgba(62, 207, 142, 0.85)',
             'rgba(255, 255, 255, 0.06)'
