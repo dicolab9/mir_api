@@ -602,6 +602,97 @@ async function excluir(id) {
 }
 
 //--------------------------------------------------
+// FUNÇÕES DE LIMPEZA SEGURA
+//--------------------------------------------------
+
+function abrirModalLimpeza() {
+  const modal = document.getElementById('modalLimpeza');
+  modal.style.display = 'flex';
+  document.getElementById('senhaLimpeza').value = '';
+  document.getElementById('statusLimpeza').innerHTML = '';
+}
+
+function fecharModalLimpeza() {
+  const modal = document.getElementById('modalLimpeza');
+  modal.style.display = 'none';
+}
+
+async function confirmarLimpeza() {
+  const senha = document.getElementById('senhaLimpeza').value;
+  const statusDiv = document.getElementById('statusLimpeza');
+  
+  if (!senha) {
+    statusDiv.innerHTML = '<p style="color: #ff6b6b;">❌ Digite a senha de administrador!</p>';
+    return;
+  }
+  
+  // Mostrar loading
+  statusDiv.innerHTML = '<div class="loading-spinner"></div><p style="margin-top: 10px;">Processando limpeza...</p>';
+  
+  try {
+    const response = await fetch('/admin/limpar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senha: senha })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.erro || 'Erro na limpeza');
+    }
+    
+    // Sucesso na limpeza
+    statusDiv.innerHTML = `
+      <div style="background: #4caf50; padding: 12px; border-radius: 8px; color: white;">
+        ✅ ${data.mensagem}
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: #888;">
+        <strong>Registros removidos:</strong><br>
+        • Pessoas Normal: ${data.registrosRemovidos.pessoas_normal.toLocaleString()}<br>
+        • Pessoas MIR: ${data.registrosRemovidos.pessoas_mir.toLocaleString()}<br>
+        • Tabelas Lexicais: ${Object.values(data.registrosRemovidos).slice(2).reduce((a,b) => a+b, 0).toLocaleString()}
+      </div>
+    `;
+    
+    // Fechar modal após 2 segundos
+    setTimeout(() => {
+      fecharModalLimpeza();
+      // Atualizar listagem e estatísticas
+      listar();
+      estatisticas();
+      // Mostrar mensagem de sucesso
+      const resultadoDiv = document.getElementById('resultado');
+      resultadoDiv.innerHTML = `
+        <div style="background: #4caf50; padding: 20px; border-radius: 8px; color: white; text-align: center;">
+          <h3>✅ Banco de Dados Limpo com Sucesso!</h3>
+          <p>Todos os registros foram removidos. Você pode começar a cadastrar novos dados.</p>
+        </div>
+      `;
+      
+      // Limpar resultado após 5 segundos
+      setTimeout(() => {
+        if (resultadoDiv.innerHTML.includes('Banco de Dados Limpo')) {
+          resultadoDiv.innerHTML = '';
+        }
+      }, 5000);
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Erro na limpeza:', error);
+    statusDiv.innerHTML = `<p style="color: #ff6b6b;">❌ ${error.message}</p>`;
+  }
+}
+
+// Fechar modal clicando fora
+window.onclick = function(event) {
+  const modal = document.getElementById('modalLimpeza');
+  if (event.target === modal) {
+    fecharModalLimpeza();
+  }
+}
+
+//--------------------------------------------------
 // INICIALIZAÇÃO
 //--------------------------------------------------
 

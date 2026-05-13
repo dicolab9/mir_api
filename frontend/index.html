@@ -102,7 +102,7 @@
   BOTÕES
   ------------------------------------>
 
-  <button onclick="cadastrar()">
+  <!-- <button onclick="cadastrar()">
     Cadastrar
   </button>
 
@@ -112,7 +112,52 @@
 
   <button onclick="listar()">
     Listar Registros MIR
+  </button> -->
+
+  <!-- Na seção de botões, adicione este botão -->
+<div class="actions">
+  <button onclick="cadastrar()" class="primary">📝 Cadastrar</button>
+  <button onclick="estatisticas()">📊 Estatísticas</button>
+  <button onclick="listar()">📋 Listar Registros</button>
+  <button onclick="abrirModalLimpeza()" style="background: #d32f2f; color: white; border-color: #d32f2f;">
+    🗑️ Limpar Banco
   </button>
+</div>
+
+<!-- Modal de confirmação de limpeza -->
+<div id="modalLimpeza" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>⚠️ LIMPEZA TOTAL DO BANCO DE DADOS</h3>
+      <span class="modal-close" onclick="fecharModalLimpeza()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p style="color: #ff6b6b; margin-bottom: 20px;">
+        <strong>ATENÇÃO:</strong> Esta ação irá remover TODOS os registros do banco de dados, incluindo:
+      </p>
+      <ul style="margin-bottom: 20px; margin-left: 20px;">
+        <li>Todos os cadastros da tabela Normal</li>
+        <li>Todos os cadastros da tabela MIR</li>
+        <li>Todas as tabelas lexicais (Nomes, Sobrenomes, Ruas, Cidades, CEPs)</li>
+        <li>Os IDs serão resetados para 1</li>
+      </ul>
+      <p style="color: #ff6b6b; margin-bottom: 20px;">
+        <strong>Esta operação não pode ser desfeita!</strong>
+      </p>
+      
+      <div class="form-group">
+        <label for="senhaLimpeza">🔑 Senha de Administrador:</label>
+        <input type="password" id="senhaLimpeza" placeholder="Digite a senha de segurança" class="senha-input">
+      </div>
+      
+      <div id="statusLimpeza" style="margin-top: 15px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="confirmarLimpeza()" class="btn-danger">🗑️ Confirmar Limpeza</button>
+      <button onclick="fecharModalLimpeza()" class="btn-secondary">Cancelar</button>
+    </div>
+  </div>
+</div>
 
   <hr>
 
