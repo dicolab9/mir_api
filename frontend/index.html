@@ -116,13 +116,23 @@
 
   <hr>
 
+  <!-- Substitua a div .dashboard por esta versão -->
   <div class="dashboard">
+    <div class="chart-box">
+      <canvas id="graficoBytes"></canvas>
+    </div>
+    <div class="chart-box">
+      <canvas id="graficoEconomia"></canvas>
+    </div>
+  </div>
+
+  <!-- <div class="dashboard">
 
     <canvas id="graficoBytes"></canvas>
 
     <canvas id="graficoEconomia"></canvas>
 
-  </div>
+  </div> -->
 
   <!-----------------------------------
   RESULTADO
@@ -151,7 +161,8 @@
   ------------------------------------>
 
   <script src="script.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 
 </body>
 

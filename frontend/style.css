@@ -42,7 +42,7 @@ body {
   background: var(--bg);
   color: var(--text);
   padding: 40px 32px;
-  max-width: 860px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -63,6 +63,8 @@ h2 {
   font-weight: 500;
   color: var(--text);
   letter-spacing: -0.01em;
+  margin-top: 20px;
+  margin-bottom: 12px;
 }
 
 h3 {
@@ -303,30 +305,69 @@ pre {
 }
 
 /* ------------------------------------------------
-   GRÁFICOS
+   GRÁFICOS - CORRIGIDO
 ------------------------------------------------ */
 
 .dashboard {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 20px;
   margin-bottom: 24px;
+  margin-top: 20px;
 }
 
+/* Estilo comum para ambos os gráficos */
 .chart-box {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px 22px;
-  height: 300px;
+  padding: 16px;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
 }
 
+/* Container do canvas - sem posicionamento absoluto problemático */
 .chart-box canvas {
-  position: absolute;
-  inset: 20px 22px;
-  width: calc(100% - 44px) !important;
-  height: calc(100% - 40px) !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: 260px;
+}
+
+/* Gráfico de rosca (doughnut) - ajuste específico */
+#graficoEconomia {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 260px !important;
+  max-height: 260px !important;
+  margin: 0 auto;
+  display: block;
+}
+
+/* Gráfico de barras */
+#graficoBytes {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 260px !important;
+}
+
+/* Responsivo para telas menores */
+@media (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .chart-box {
+    min-height: 260px;
+  }
+  
+  #graficoEconomia {
+    max-width: 220px !important;
+    max-height: 220px !important;
+  }
 }
 
 /* ------------------------------------------------
@@ -338,6 +379,7 @@ pre {
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 14px;
+  margin-top: 20px;
 }
 
 #tempo {
@@ -347,8 +389,9 @@ pre {
 
 #lista {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
 }
 
 /* ------------------------------------------------
@@ -387,12 +430,28 @@ pre {
 }
 
 /* ------------------------------------------------
+   ESTATÍSTICAS EM TEXTO
+------------------------------------------------ */
+
+#stats {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+/* ------------------------------------------------
    RESPONSIVO
 ------------------------------------------------ */
 
 @media (max-width: 600px) {
   body {
-    padding: 24px 16px;
+    padding: 20px 16px;
   }
 
   .grid,
@@ -407,5 +466,18 @@ pre {
 
   #lista {
     grid-template-columns: 1fr;
+  }
+  
+  .chart-box {
+    padding: 12px;
+  }
+  
+  .chart-box canvas {
+    max-height: 200px;
+  }
+  
+  #graficoEconomia {
+    max-width: 180px !important;
+    max-height: 180px !important;
   }
 }
