@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
 });
 
 // ============================================================
-// 🔒 ENDPOINT SEGURO DE LIMPEZA COM VALIDAÇÃO
+// 🔒 ENDPOINT SEGURO DE LIMPEZA - LIMPA TODAS AS TABELAS
 // ============================================================
 app.post('/admin/limpar', async (req, res) => {
   const { senha } = req.body;
@@ -50,89 +50,116 @@ app.post('/admin/limpar', async (req, res) => {
     });
   }
   
+  const client = await pool.connect();
+  
   try {
     console.log('⚠️ INICIANDO LIMPEZA TOTAL DO BANCO DE DADOS...');
     console.log(`👤 Autorizado por: ${req.ip} em ${new Date().toISOString()}`);
     
     // Iniciar transação
-    await pool.query('BEGIN');
+    await client.query('BEGIN');
     
-    // Contar registros antes da limpeza
-    const statsAntes = await pool.query(`
+    // Contar registros antes da limpeza (TODAS as tabelas)
+    const statsAntes = await client.query(`
       SELECT 
-        (SELECT COUNT(*) FROM pessoas_normal) as pessoas_normal,
-        (SELECT COUNT(*) FROM pessoas_mir) as pessoas_mir,
-        (SELECT COUNT(*) FROM lexical_nome) as lexical_nome,
-        (SELECT COUNT(*) FROM lexical_sobrenome) as lexical_sobrenome,
-        (SELECT COUNT(*) FROM lexical_rua) as lexical_rua,
-        (SELECT COUNT(*) FROM lexical_cidade) as lexical_cidade,
-        (SELECT COUNT(*) FROM lexical_cep) as lexical_cep
+        'pessoas_normal' as tabela, COUNT(*) as total FROM pessoas_normal
+      UNION ALL
+      SELECT 'pessoas_mir', COUNT(*) FROM pessoas_mir
+      UNION ALL
+      SELECT 'lexical_nome', COUNT(*) FROM lexical_nome
+      UNION ALL
+      SELECT 'lexical_sobrenome', COUNT(*) FROM lexical_sobrenome
+      UNION ALL
+      SELECT 'lexical_rua', COUNT(*) FROM lexical_rua
+      UNION ALL
+      SELECT 'lexical_cidade', COUNT(*) FROM lexical_cidade
+      UNION ALL
+      SELECT 'lexical_cep', COUNT(*) FROM lexical_cep
     `);
     
-    // Limpar tabelas
-    await pool.query('DELETE FROM pessoas_mir');
-    await pool.query('DELETE FROM pessoas_normal');
-    await pool.query('DELETE FROM lexical_nome');
-    await pool.query('DELETE FROM lexical_sobrenome');
-    await pool.query('DELETE FROM lexical_rua');
-    await pool.query('DELETE FROM lexical_cidade');
-    await pool.query('DELETE FROM lexical_cep');
+    // Desabilitar constraints temporariamente para garantir limpeza
+    await client.query('SET CONSTRAINTS ALL DEFERRED');
     
-    // Resetar sequências
-    await pool.query('ALTER SEQUENCE lexical_nome_id_seq RESTART WITH 1');
-    await pool.query('ALTER SEQUENCE lexical_sobrenome_id_seq RESTART WITH 1');
-    await pool.query('ALTER SEQUENCE lexical_rua_id_seq RESTART WITH 1');
-    await pool.query('ALTER SEQUENCE lexical_cidade_id_seq RESTART WITH 1');
-    await pool.query('ALTER SEQUENCE lexical_cep_id_seq RESTART WITH 1');
-    await pool.query('ALTER SEQUENCE pessoas_normal_id_seq RESTART WITH 1');
+    // Limpar TODAS as tabelas na ordem correta (primeiro as que têm FK)
+    console.log('🗑️ Removendo registros das tabelas...');
+    
+    // 1. Limpar tabelas que têm foreign keys primeiro
+    await client.query('DELETE FROM pessoas_mir');
+    console.log('  ✅ pessoas_mir limpa');
+    
+    await client.query('DELETE FROM pessoas_normal');
+    console.log('  ✅ pessoas_normal limpa');
+    
+    // 2. Limpar tabelas lexicais
+    await client.query('DELETE FROM lexical_nome');
+    console.log('  ✅ lexical_nome limpa');
+    
+    await client.query('DELETE FROM lexical_sobrenome');
+    console.log('  ✅ lexical_sobrenome limpa');
+    
+    await client.query('DELETE FROM lexical_rua');
+    console.log('  ✅ lexical_rua limpa');
+    
+    await client.query('DELETE FROM lexical_cidade');
+    console.log('  ✅ lexical_cidade limpa');
+    
+    await client.query('DELETE FROM lexical_cep');
+    console.log('  ✅ lexical_cep limpa');
+    
+    // 3. Resetar todas as sequências (IDs)
+    console.log('🔄 Resetando sequências...');
+    
+    await client.query('ALTER SEQUENCE IF EXISTS pessoas_normal_id_seq RESTART WITH 1');
+    await client.query('ALTER SEQUENCE IF EXISTS pessoas_mir_id_seq RESTART WITH 1');
+    await client.query('ALTER SEQUENCE IF EXISTS lexical_nome_id_seq RESTART WITH 1');
+    await client.query('ALTER SEQUENCE IF EXISTS lexical_sobrenome_id_seq RESTART WITH 1');
+    await client.query('ALTER SEQUENCE IF EXISTS lexical_rua_id_seq RESTART WITH 1');
+    await client.query('ALTER SEQUENCE IF EXISTS lexical_cidade_id_seq RESTART WITH 1');
+    await client.query('ALTER SEQUENCE IF EXISTS lexical_cep_id_seq RESTART WITH 1');
+    
+    console.log('  ✅ Todas as sequências resetadas');
+    
+    // 4. Verificar se realmente limpou tudo
+    const verificacao = await client.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM pessoas_normal) as normal,
+        (SELECT COUNT(*) FROM pessoas_mir) as mir,
+        (SELECT COUNT(*) FROM lexical_nome) as nome,
+        (SELECT COUNT(*) FROM lexical_sobrenome) as sobrenome,
+        (SELECT COUNT(*) FROM lexical_rua) as rua,
+        (SELECT COUNT(*) FROM lexical_cidade) as cidade,
+        (SELECT COUNT(*) FROM lexical_cep) as cep
+    `);
     
     // Commit da transação
-    await pool.query('COMMIT');
+    await client.query('COMMIT');
     
-    console.log('✅ LIMPEZA CONCLUÍDA COM SUCESSO!');
+    console.log('✅ LIMPEZA TOTAL CONCLUÍDA COM SUCESSO!');
+    console.log('📊 Verificação pós-limpeza:', verificacao.rows[0]);
+    
+    // Preparar relatório de registros removidos
+    const registrosRemovidos = {};
+    statsAntes.rows.forEach(row => {
+      registrosRemovidos[row.tabela] = parseInt(row.total);
+    });
     
     res.json({ 
       sucesso: true, 
-      mensagem: 'Banco de dados limpo com sucesso!',
-      registrosRemovidos: {
-        pessoas_normal: parseInt(statsAntes.rows[0].pessoas_normal),
-        pessoas_mir: parseInt(statsAntes.rows[0].pessoas_mir),
-        lexical_nome: parseInt(statsAntes.rows[0].lexical_nome),
-        lexical_sobrenome: parseInt(statsAntes.rows[0].lexical_sobrenome),
-        lexical_rua: parseInt(statsAntes.rows[0].lexical_rua),
-        lexical_cidade: parseInt(statsAntes.rows[0].lexical_cidade),
-        lexical_cep: parseInt(statsAntes.rows[0].lexical_cep)
-      },
+      mensagem: 'Todas as tabelas foram limpas com sucesso!',
+      registrosRemovidos: registrosRemovidos,
+      verificacao: verificacao.rows[0],
       timestamp: new Date().toISOString()
     });
     
   } catch (error) {
-    await pool.query('ROLLBACK');
+    await client.query('ROLLBACK');
     console.error('❌ Erro na limpeza:', error);
     res.status(500).json({ 
       erro: 'Erro ao limpar banco de dados', 
       detalhe: error.message 
     });
-  }
-});
-
-// Endpoint para verificar status do banco
-app.get('/admin/status', async (req, res) => {
-  try {
-    const stats = await pool.query(`
-      SELECT 
-        (SELECT COUNT(*) FROM pessoas_normal) as total_normal,
-        (SELECT COUNT(*) FROM pessoas_mir) as total_mir,
-        (SELECT COUNT(*) FROM lexical_nome) as total_nomes_token,
-        (SELECT COUNT(*) FROM lexical_sobrenome) as total_sobrenomes_token,
-        (SELECT COUNT(*) FROM lexical_rua) as total_ruas_token,
-        (SELECT COUNT(*) FROM lexical_cidade) as total_cidades_token,
-        (SELECT COUNT(*) FROM lexical_cep) as total_ceps_token
-    `);
-    
-    res.json(stats.rows[0]);
-  } catch (error) {
-    res.status(500).json({ erro: error.message });
+  } finally {
+    client.release();
   }
 });
 
