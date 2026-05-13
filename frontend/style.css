@@ -653,3 +653,87 @@ small {
   margin-top: 5px;
   font-size: 11px;
 }
+
+/* ------------------------------------------------
+   PAGINAÇÃO
+------------------------------------------------ */
+
+.paginacao-container {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 20px;
+}
+
+.paginacao-info {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.paginacao-botoes {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.paginacao-botoes button {
+  padding: 6px 12px;
+  font-size: 12px;
+  min-width: 36px;
+}
+
+.paginacao-botoes button.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.paginacao-botoes button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.paginacao-limite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paginacao-limite label {
+  font-size: 12px;
+  margin: 0;
+}
+
+.paginacao-limite select {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .paginacao-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .paginacao-botoes {
+    justify-content: center;
+  }
+  
+  .paginacao-info {
+    text-align: center;
+  }
+}

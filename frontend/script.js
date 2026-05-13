@@ -353,72 +353,310 @@ function formatarBytes(bytes) {
 // LISTAR
 //--------------------------------------------------
 
+// async function listar() {
+//   try {
+//     const response = await fetch('/listar');
+//     const data = await response.json();
+    
+//     if (!response.ok) {
+//       throw new Error(data.erro || 'Erro na listagem');
+//     }
+    
+//     const container = document.getElementById('lista');
+//     container.innerHTML = '';
+    
+//     if (data.dados.length === 0) {
+//       container.innerHTML = '<p style="text-align: center; color: #888;">Nenhum registro encontrado</p>';
+//       document.getElementById('tempo').innerHTML = '';
+//       return;
+//     }
+    
+//     data.dados.forEach(pessoa => {
+//       container.innerHTML += `
+//         <div class="card" style="
+//           background: #1a1a1a;
+//           border-radius: 8px;
+//           padding: 15px;
+//           margin-bottom: 15px;
+//           border-left: 4px solid #7c6fff;
+//         ">
+//           <h3 style="margin: 0 0 10px 0; color: #7c6fff;">
+//             ${escapeHtml(pessoa.nome)} ${escapeHtml(pessoa.sobrenome)}
+//           </h3>
+//           <p><strong>🏠 Rua:</strong> ${escapeHtml(pessoa.rua)}, ${escapeHtml(pessoa.casa)}</p>
+//           <p><strong>🌆 Cidade:</strong> ${escapeHtml(pessoa.cidade)}</p>
+//           <p><strong>📮 CEP:</strong> ${escapeHtml(pessoa.cep)}</p>
+//           <p><strong>📄 CPF:</strong> ${escapeHtml(pessoa.cpf)}</p>
+//           <button 
+//             class="danger" 
+//             onclick="excluir(${pessoa.id})"
+//             style="
+//               background: #d32f2f;
+//               color: white;
+//               border: none;
+//               padding: 8px 16px;
+//               border-radius: 4px;
+//               cursor: pointer;
+//               margin-top: 10px;
+//             "
+//             onmouseover="this.style.background='#f44336'"
+//             onmouseout="this.style.background='#d32f2f'"
+//           >
+//             🗑️ Excluir
+//           </button>
+//         </div>
+//       `;
+//     });
+    
+//     document.getElementById('tempo').innerHTML = `
+//       <p style="text-align: right; color: #888; font-size: 12px;">
+//         ⏱️ Tempo de execução: ${data.tempo_execucao_ms} ms
+//       </p>
+//     `;
+    
+//   } catch (error) {
+//     console.error('Erro na listagem:', error);
+//     document.getElementById('lista').innerHTML = `
+//       <p style="color: #f44336;">❌ Erro ao listar registros: ${error.message}</p>
+//     `;
+//   }
+// }
+
+// Variáveis globais para paginação
+let paginaAtual = 1;
+let limitePorPagina = 20;
+let totalPaginas = 1;
+
+//--------------------------------------------------
+// LISTAR COM PAGINAÇÃO
+//--------------------------------------------------
+
 async function listar() {
   try {
-    const response = await fetch('/listar');
+    // Mostrar loading
+    const container = document.getElementById('lista');
+    container.innerHTML = '<div class="loading-spinner"></div><p style="text-align: center; margin-top: 20px;">Carregando...</p>';
+    
+    const response = await fetch(`/listar?page=${paginaAtual}&limit=${limitePorPagina}`);
     const data = await response.json();
     
     if (!response.ok) {
       throw new Error(data.erro || 'Erro na listagem');
     }
     
-    const container = document.getElementById('lista');
+    // Atualizar variáveis de paginação
+    if (data.paginacao) {
+      paginaAtual = data.paginacao.pagina_atual;
+      limitePorPagina = data.paginacao.limite_por_pagina;
+      totalPaginas = data.paginacao.total_paginas;
+    }
+    
     container.innerHTML = '';
     
     if (data.dados.length === 0) {
-      container.innerHTML = '<p style="text-align: center; color: #888;">Nenhum registro encontrado</p>';
+      container.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">Nenhum registro encontrado</p>';
+      document.getElementById('paginacao-controles').innerHTML = '';
       document.getElementById('tempo').innerHTML = '';
       return;
     }
     
+    // Exibir registros
     data.dados.forEach(pessoa => {
       container.innerHTML += `
-        <div class="card" style="
-          background: #1a1a1a;
-          border-radius: 8px;
-          padding: 15px;
-          margin-bottom: 15px;
-          border-left: 4px solid #7c6fff;
-        ">
-          <h3 style="margin: 0 0 10px 0; color: #7c6fff;">
+        <div class="card">
+          <h3>
             ${escapeHtml(pessoa.nome)} ${escapeHtml(pessoa.sobrenome)}
+            <span style="font-size: 11px; color: #888;"> #${pessoa.id}</span>
           </h3>
           <p><strong>🏠 Rua:</strong> ${escapeHtml(pessoa.rua)}, ${escapeHtml(pessoa.casa)}</p>
           <p><strong>🌆 Cidade:</strong> ${escapeHtml(pessoa.cidade)}</p>
           <p><strong>📮 CEP:</strong> ${escapeHtml(pessoa.cep)}</p>
           <p><strong>📄 CPF:</strong> ${escapeHtml(pessoa.cpf)}</p>
-          <button 
-            class="danger" 
-            onclick="excluir(${pessoa.id})"
-            style="
-              background: #d32f2f;
-              color: white;
-              border: none;
-              padding: 8px 16px;
-              border-radius: 4px;
-              cursor: pointer;
-              margin-top: 10px;
-            "
-            onmouseover="this.style.background='#f44336'"
-            onmouseout="this.style.background='#d32f2f'"
-          >
-            🗑️ Excluir
-          </button>
+          <button class="danger" onclick="excluir(${pessoa.id})">🗑️ Excluir</button>
         </div>
       `;
     });
     
+    // Atualizar informações de tempo
     document.getElementById('tempo').innerHTML = `
-      <p style="text-align: right; color: #888; font-size: 12px;">
+      <span style="font-size: 12px; color: #888;">
         ⏱️ Tempo de execução: ${data.tempo_execucao_ms} ms
-      </p>
+      </span>
     `;
+    
+    // Renderizar controles de paginação
+    renderizarPaginacao(data.paginacao);
     
   } catch (error) {
     console.error('Erro na listagem:', error);
     document.getElementById('lista').innerHTML = `
-      <p style="color: #f44336;">❌ Erro ao listar registros: ${error.message}</p>
+      <p style="color: #f44336; text-align: center; padding: 40px;">
+        ❌ Erro ao listar registros: ${error.message}
+      </p>
     `;
+  }
+}
+
+//--------------------------------------------------
+// RENDERIZAR CONTROLES DE PAGINAÇÃO
+//--------------------------------------------------
+
+function renderizarPaginacao(paginacao) {
+  const container = document.getElementById('paginacao-controles');
+  
+  if (!paginacao || paginacao.total_registros === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  const { pagina_atual, total_paginas, total_registros, primeiro_registro, ultimo_registro } = paginacao;
+  
+  // Gerar botões de página
+  let botoesHtml = '';
+  
+  // Botão Primeira
+  botoesHtml += `
+    <button onclick="irParaPagina(1)" ${pagina_atual === 1 ? 'disabled' : ''}>
+      ⏮️
+    </button>
+  `;
+  
+  // Botão Anterior
+  botoesHtml += `
+    <button onclick="paginaAnterior()" ${pagina_atual === 1 ? 'disabled' : ''}>
+      ◀
+    </button>
+  `;
+  
+  // Números das páginas (máximo 5)
+  const maxBotoes = 5;
+  let inicio = Math.max(1, pagina_atual - Math.floor(maxBotoes / 2));
+  let fim = Math.min(total_paginas, inicio + maxBotoes - 1);
+  
+  if (fim - inicio + 1 < maxBotoes) {
+    inicio = Math.max(1, fim - maxBotoes + 1);
+  }
+  
+  if (inicio > 1) {
+    botoesHtml += `<button onclick="irParaPagina(1)">1</button>`;
+    if (inicio > 2) botoesHtml += `<button disabled>...</button>`;
+  }
+  
+  for (let i = inicio; i <= fim; i++) {
+    botoesHtml += `
+      <button onclick="irParaPagina(${i})" class="${i === pagina_atual ? 'active' : ''}">
+        ${i}
+      </button>
+    `;
+  }
+  
+  if (fim < total_paginas) {
+    if (fim < total_paginas - 1) botoesHtml += `<button disabled>...</button>`;
+    botoesHtml += `<button onclick="irParaPagina(${total_paginas})">${total_paginas}</button>`;
+  }
+  
+  // Botão Próxima
+  botoesHtml += `
+    <button onclick="proximaPagina()" ${pagina_atual === total_paginas ? 'disabled' : ''}>
+      ▶
+    </button>
+  `;
+  
+  // Botão Última
+  botoesHtml += `
+    <button onclick="irParaPagina(${total_paginas})" ${pagina_atual === total_paginas ? 'disabled' : ''}>
+      ⏭️
+    </button>
+  `;
+  
+  container.innerHTML = `
+    <div class="paginacao-container">
+      <div class="paginacao-info">
+        📊 Mostrando ${primeiro_registro} a ${ultimo_registro} de ${total_registros.toLocaleString()} registros
+      </div>
+      
+      <div class="paginacao-botoes">
+        ${botoesHtml}
+      </div>
+      
+      <div class="paginacao-limite">
+        <label>📄 Por página:</label>
+        <select id="limitePorPagina" onchange="mudarLimite()">
+          <option value="10" ${limitePorPagina === 10 ? 'selected' : ''}>10</option>
+          <option value="20" ${limitePorPagina === 20 ? 'selected' : ''}>20</option>
+          <option value="50" ${limitePorPagina === 50 ? 'selected' : ''}>50</option>
+          <option value="100" ${limitePorPagina === 100 ? 'selected' : ''}>100</option>
+        </select>
+      </div>
+    </div>
+  `;
+}
+
+//--------------------------------------------------
+// FUNÇÕES DE NAVEGAÇÃO
+//--------------------------------------------------
+
+function irParaPagina(pagina) {
+  if (pagina >= 1 && pagina <= totalPaginas && pagina !== paginaAtual) {
+    paginaAtual = pagina;
+    listar();
+    // Scroll suave para o topo da listagem
+    document.getElementById('lista').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function paginaAnterior() {
+  if (paginaAtual > 1) {
+    irParaPagina(paginaAtual - 1);
+  }
+}
+
+function proximaPagina() {
+  if (paginaAtual < totalPaginas) {
+    irParaPagina(paginaAtual + 1);
+  }
+}
+
+function mudarLimite() {
+  const novoLimite = parseInt(document.getElementById('limitePorPagina').value);
+  if (novoLimite !== limitePorPagina) {
+    limitePorPagina = novoLimite;
+    paginaAtual = 1; // Reset para primeira página
+    listar();
+  }
+}
+
+// Atualizar a função excluir para recarregar a página atual
+async function excluir(id) {
+  const confirmar = confirm('⚠️ Deseja realmente excluir este registro?\n\nEsta ação não pode ser desfeita!');
+  
+  if (!confirmar) return;
+  
+  try {
+    const response = await fetch(`/excluir/${id}`, { method: 'DELETE' });
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.erro || 'Erro na exclusão');
+    }
+    
+    alert('✅ Registro excluído com sucesso!');
+    
+    // Verificar se a página atual ficou vazia e ajustar
+    const totalRegistrosAposExclusao = await fetch('/listar?page=1&limit=1');
+    const totalData = await totalRegistrosAposExclusao.json();
+    
+    if (totalData.paginacao && totalData.paginacao.total_registros % limitePorPagina === 0 && paginaAtual > 1) {
+      // Se a última página ficou vazia, volta uma página
+      paginaAtual = Math.min(paginaAtual, totalData.paginacao.total_paginas);
+    }
+    
+    listar();
+    estatisticas();
+    
+  } catch (error) {
+    console.error('Erro na exclusão:', error);
+    alert(`❌ Erro ao excluir: ${error.message}`);
   }
 }
 
@@ -434,31 +672,31 @@ function escapeHtml(texto) {
 // EXCLUIR
 //--------------------------------------------------
 
-async function excluir(id) {
-  const confirmar = confirm('⚠️ Deseja realmente excluir este registro?\n\nEsta ação não pode ser desfeita!');
+// async function excluir(id) {
+//   const confirmar = confirm('⚠️ Deseja realmente excluir este registro?\n\nEsta ação não pode ser desfeita!');
   
-  if (!confirmar) return;
+//   if (!confirmar) return;
   
-  try {
-    const response = await fetch(`/excluir/${id}`, { 
-      method: 'DELETE' 
-    });
+//   try {
+//     const response = await fetch(`/excluir/${id}`, { 
+//       method: 'DELETE' 
+//     });
     
-    const data = await response.json();
+//     const data = await response.json();
     
-    if (!response.ok) {
-      throw new Error(data.erro || 'Erro na exclusão');
-    }
+//     if (!response.ok) {
+//       throw new Error(data.erro || 'Erro na exclusão');
+//     }
     
-    alert('✅ Registro excluído com sucesso!');
-    await listar();
-    await estatisticas();
+//     alert('✅ Registro excluído com sucesso!');
+//     await listar();
+//     await estatisticas();
     
-  } catch (error) {
-    console.error('Erro na exclusão:', error);
-    alert(`❌ Erro ao excluir: ${error.message}`);
-  }
-}
+//   } catch (error) {
+//     console.error('Erro na exclusão:', error);
+//     alert(`❌ Erro ao excluir: ${error.message}`);
+//   }
+// }
 
 //--------------------------------------------------
 // FUNÇÕES DE LIMPEZA SEGURA
@@ -529,6 +767,7 @@ async function confirmarLimpeza() {
     // Fechar modal após 3 segundos
     setTimeout(() => {
       fecharModalLimpeza();
+      paginaAtual = 1; // Reset para primeira página
       // Atualizar listagem e estatísticas
       listar();
       estatisticas();
