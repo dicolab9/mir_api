@@ -122,6 +122,9 @@
   <button onclick="abrirModalLimpeza()" style="background: #d32f2f; color: white; border-color: #d32f2f;">
     🗑️ Limpar Banco
   </button>
+  <button onclick="abrirModalSeed()" style="background: #2196f3; color: white; border-color: #2196f3;">
+    🌱 Popular Banco
+  </button>
 </div>
 
 <!-- Modal de confirmação de limpeza -->
@@ -155,6 +158,46 @@
     <div class="modal-footer">
       <button onclick="confirmarLimpeza()" class="btn-danger">🗑️ Confirmar Limpeza</button>
       <button onclick="fecharModalLimpeza()" class="btn-secondary">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Seed (popular dados) -->
+<div id="modalSeed" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🌱 POPULAR BANCO DE DADOS</h3>
+      <span class="modal-close" onclick="fecharModalSeed()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 20px;">
+        Esta ação irá inserir dados de teste no banco de dados.
+      </p>
+      
+      <div class="form-group">
+        <label for="quantidadeRegistros">📊 Quantidade de registros:</label>
+        <select id="quantidadeRegistros" class="senha-input">
+          <option value="10">10 registros</option>
+          <option value="50">50 registros</option>
+          <option value="100" selected>100 registros</option>
+          <option value="500">500 registros</option>
+          <option value="1000">1.000 registros</option>
+          <option value="5000">5.000 registros</option>
+          <option value="10000">10.000 registros</option>
+        </select>
+        <small style="color: #888;">⚠️ Limite máximo: 10.000 registros por vez</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="senhaSeed">🔑 Senha de Administrador:</label>
+        <input type="password" id="senhaSeed" placeholder="Digite a senha de segurança" class="senha-input">
+      </div>
+      
+      <div id="statusSeed" style="margin-top: 15px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="confirmarSeed()" class="btn-primary">🌱 Iniciar População</button>
+      <button onclick="fecharModalSeed()" class="btn-secondary">Cancelar</button>
     </div>
   </div>
 </div>

@@ -130,158 +130,161 @@ let graficoBytes;
 let graficoEconomia;
 
 async function estatisticas() {
-  try {
-    const response = await fetch('/estatisticas');
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.erro || 'Erro nas estatísticas');
-    }
-    
-    if (graficoBytes) graficoBytes.destroy();
-    if (graficoEconomia) graficoEconomia.destroy();
-    
-    // Gráfico de Bytes (Barras)
-    const ctxBytes = document.getElementById('graficoBytes').getContext('2d');
-    graficoBytes = new Chart(ctxBytes, {
-      type: 'bar',
-      data: {
-        labels: ['Normal', 'MIR', 'Lexical', 'Total MIR'],
-        datasets: [{
-          label: 'Bytes',
-          data: [
-            data.normal_bytes || 0,
-            data.mir_bytes || 0,
-            data.lexical_bytes || 0,
-            data.total_mir || 0
-          ],
-          backgroundColor: [
-            'rgba(124, 111, 255, 0.25)',
-            'rgba(124, 111, 255, 0.50)',
-            'rgba(124, 111, 255, 0.75)',
-            'rgba(124, 111, 255, 1.00)'
-          ],
-          borderColor: 'rgba(124, 111, 255, 1)',
-          borderWidth: 1,
-          borderRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: { 
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) label += ': ';
-                label += context.raw.toLocaleString() + ' bytes';
-                return label;
-              }
-            }
-          }
-        },
-        scales: {
-          x: { 
-            ticks: { color: '#888' }, 
-            grid: { color: 'rgba(255,255,255,0.05)' } 
-          },
-          y: { 
-            ticks: { color: '#888' }, 
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            title: {
-              display: true,
-              text: 'Bytes',
-              color: '#888'
-            }
-          }
-        }
-      }
-    });
-    
-    // Gráfico de Economia (Doughnut/Rosca) - VERSÃO CORRIGIDA
-    const economiaPerc = data.economia_percentual || 0;
-    const ctxEconomia = document.getElementById('graficoEconomia').getContext('2d');
-    
-    graficoEconomia = new Chart(ctxEconomia, {
-      type: 'doughnut',
-      data: {
-        labels: ['Economia MIR', 'Tamanho restante'],
-        datasets: [{
-          data: [economiaPerc, 100 - economiaPerc],
-          backgroundColor: [
-            'rgba(62, 207, 142, 0.85)',
-            'rgba(255, 255, 255, 0.06)'
-          ],
-          borderColor: [
-            'rgba(62, 207, 142, 1)',
-            'rgba(255, 255, 255, 0.08)'
-          ],
-          borderWidth: 1,
-          borderRadius: 8,
-          spacing: 2
-        }]
-      },
-      options: {
-        cutout: '65%',  // Reduzido de 72% para 65% (mais centralizado)
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { 
-            display: true,
-            position: 'bottom',
-            labels: {
-              color: '#888',
-              font: { size: 11, family: "'DM Sans', sans-serif" },
-              boxWidth: 10,
-              padding: 8
-            }
-          },
-          tooltip: { 
-            callbacks: {
-              label: function(context) {
-                return `${context.label}: ${context.raw.toFixed(1)}%`;
-              }
-            }
-          }
-        },
-        layout: {
-          padding: {
-            top: 10,
-            bottom: 10,
-            left: 10,
-            right: 10
-          }
-        }
-      },
-      plugins: [{
-        id: 'centroEconomia',
-        afterDraw(chart) {
-          const { ctx, chartArea: { top, left, width, height } } = chart;
-          ctx.save();
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          const cx = left + width / 2;
-          const cy = top + height / 2;
-          
-          // Percentual central (maior)
-          ctx.font = 'bold 20px "DM Sans", sans-serif';
-          ctx.fillStyle = '#3ecf8e';
-          ctx.fillText(economiaPerc.toFixed(1) + '%', cx, cy - 8);
-          
-          // Label "economia" abaixo
-          ctx.font = '11px "DM Sans", sans-serif';
-          ctx.fillStyle = '#888';
-          ctx.fillText('de economia', cx, cy + 14);
-          
-          ctx.restore();
-        }
-      }]
-    });
+    try {
+        const response = await fetch('/estatisticas');
+        const data = await response.json();
 
-    // Exibir estatísticas em texto
-    document.getElementById('stats').innerHTML = `
+        if (!response.ok) {
+            throw new Error(data.erro || 'Erro nas estatísticas');
+        }
+
+        if (graficoBytes) graficoBytes.destroy();
+        if (graficoEconomia) graficoEconomia.destroy();
+
+        // Gráfico de Bytes (Barras)
+        const ctxBytes = document.getElementById('graficoBytes').getContext('2d');
+        graficoBytes = new Chart(ctxBytes, {
+            type: 'bar',
+            data: {
+                labels: ['Normal', 'MIR', 'Lexical', 'Total MIR'],
+                datasets: [{
+                    label: 'Bytes',
+                    data: [
+                        data.normal_bytes || 0,
+                        data.mir_bytes || 0,
+                        data.lexical_bytes || 0,
+                        data.total_mir || 0
+                    ],
+                    backgroundColor: [
+                        'rgba(124, 111, 255, 0.25)',
+                        'rgba(124, 111, 255, 0.50)',
+                        'rgba(124, 111, 255, 0.75)',
+                        'rgba(124, 111, 255, 1.00)'
+                    ],
+                    borderColor: 'rgba(124, 111, 255, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                label += context.raw.toLocaleString() + ' bytes';
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#888' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        ticks: { color: '#888' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        title: {
+                            display: true,
+                            text: 'Bytes',
+                            color: '#888'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Economia (Doughnut/Rosca) - VERSÃO CORRIGIDA
+        const economiaPerc = data.economia_percentual || 0;
+        const ctxEconomia = document.getElementById('graficoEconomia').getContext('2d');
+
+        graficoEconomia = new Chart(ctxEconomia, {
+            type: 'doughnut',
+            data: {
+                labels: ['Economia MIR', 'Tamanho restante'],
+                datasets: [{
+                    data: [economiaPerc, 100 - economiaPerc],
+                    backgroundColor: [
+                        'rgba(62, 207, 142, 0.85)',
+                        'rgba(255, 255, 255, 0.06)'
+                    ],
+                    borderColor: [
+                        'rgba(62, 207, 142, 1)',
+                        'rgba(255, 255, 255, 0.08)'
+                    ],
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    spacing: 2
+                }]
+            },
+            options: {
+                cutout: '65%',  // Reduzido de 72% para 65% (mais centralizado)
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            color: '#888',
+                            font: { size: 11, family: "'DM Sans', sans-serif" },
+                            boxWidth: 10,
+                            padding: 8
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `${context.label}: ${context.raw.toFixed(1)}%`;
+                            }
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10,
+                        left: 10,
+                        right: 10
+                    }
+                }
+            },
+            plugins: [{
+                id: 'centroEconomia',
+                afterDraw(chart) {
+                    const { ctx, chartArea: { top, left, width, height } } = chart;
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const cx = left + width / 2;
+                    const cy = top + height / 2;
+
+                    // Percentual central (maior)
+                    ctx.font = 'bold 20px "DM Sans", sans-serif';
+                    ctx.fillStyle = '#3ecf8e';
+                    ctx.fillText(economiaPerc.toFixed(1) + '%', cx, cy - 8);
+
+                    // Label "economia" abaixo
+                    ctx.font = '11px "DM Sans", sans-serif';
+                    ctx.fillStyle = '#888';
+                    ctx.fillText('de economia', cx, cy + 14);
+
+                    ctx.restore();
+                }
+            }]
+        });
+
+        // Exibir estatísticas em texto
+        // Atualizar a exibição das estatísticas para explicar melhor
+
+        if (data.economia_percentual < 0) {
+            document.getElementById('stats').innerHTML = `
 📊 ESTATÍSTICAS DO BANCO DE DADOS
 
 📝 Tabela Normal:
@@ -292,21 +295,50 @@ async function estatisticas() {
    • Registros: ${data.mir.toLocaleString()}
    • Tamanho: ${formatarBytes(data.mir_bytes)}
 
-📚 Tabelas Lexicais:
+📚 Tabelas Lexicais (Overhead fixo):
    • Tamanho total: ${formatarBytes(data.lexical_bytes)}
 
 💾 Total MIR + Lexical:
    • Tamanho: ${formatarBytes(data.total_mir)}
 
-📈 Economia: ${economiaPerc.toFixed(2)}%
-    `;
-    
-  } catch (error) {
-    console.error('Erro nas estatísticas:', error);
-    document.getElementById('stats').innerHTML = `
+📈 Economia atual: ${data.economia_percentual.toFixed(2)}%
+
+⚠️ ATENÇÃO: Economia negativa significa que o overhead das tabelas lexicais 
+   ainda não foi compensado. Com mais registros, a economia se tornará positiva!
+   
+📊 Previsão: Com 100.000 registros, a economia será de aproximadamente 76%!
+  `;
+        } else {
+            document.getElementById('stats').innerHTML = `
+📊 ESTATÍSTICAS DO BANCO DE DADOS
+
+📝 Tabela Normal:
+   • Registros: ${data.normal.toLocaleString()}
+   • Tamanho: ${formatarBytes(data.normal_bytes)}
+
+🔐 Tabela MIR:
+   • Registros: ${data.mir.toLocaleString()}
+   • Tamanho: ${formatarBytes(data.mir_bytes)}
+
+📚 Tabelas Lexicais (Overhead fixo):
+   • Tamanho total: ${formatarBytes(data.lexical_bytes)}
+
+💾 Total MIR + Lexical:
+   • Tamanho: ${formatarBytes(data.total_mir)}
+
+📈 Economia: ${data.economia_percentual.toFixed(2)}%
+
+✅ O MIR/MNE já está compensando! Economia positiva significa que 
+   a redução nos dados já superou o overhead das tabelas lexicais.
+  `;
+        }
+
+    } catch (error) {
+        console.error('Erro nas estatísticas:', error);
+        document.getElementById('stats').innerHTML = `
       ❌ Erro ao carregar estatísticas: ${error.message}
     `;
-  }
+    }
 }
 
 function formatarBytes(bytes) {
@@ -316,179 +348,6 @@ function formatarBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
-
-// //--------------------------------------------------
-// // ESTATÍSTICAS
-// //--------------------------------------------------
-
-// let graficoBytes;
-// let graficoEconomia;
-
-// async function estatisticas() {
-//   try {
-//     const response = await fetch('/estatisticas');
-//     const data = await response.json();
-    
-//     if (!response.ok) {
-//       throw new Error(data.erro || 'Erro nas estatísticas');
-//     }
-    
-//     if (graficoBytes) graficoBytes.destroy();
-//     if (graficoEconomia) graficoEconomia.destroy();
-    
-//     // Gráfico de Bytes
-//     const ctxBytes = document.getElementById('graficoBytes').getContext('2d');
-//     graficoBytes = new Chart(ctxBytes, {
-//       type: 'bar',
-//       data: {
-//         labels: ['Normal', 'MIR', 'Lexical', 'Total MIR'],
-//         datasets: [{
-//           label: 'Bytes',
-//           data: [
-//             data.normal_bytes || 0,
-//             data.mir_bytes || 0,
-//             data.lexical_bytes || 0,
-//             data.total_mir || 0
-//           ],
-//           backgroundColor: [
-//             'rgba(124, 111, 255, 0.25)',
-//             'rgba(124, 111, 255, 0.50)',
-//             'rgba(124, 111, 255, 0.75)',
-//             'rgba(124, 111, 255, 1.00)'
-//           ],
-//           borderColor: 'rgba(124, 111, 255, 1)',
-//           borderWidth: 1,
-//           borderRadius: 6
-//         }]
-//       },
-//       options: {
-//         responsive: true,
-//         maintainAspectRatio: true,
-//         plugins: { 
-//           legend: { display: false },
-//           tooltip: {
-//             callbacks: {
-//               label: function(context) {
-//                 let label = context.dataset.label || '';
-//                 if (label) label += ': ';
-//                 label += context.raw.toLocaleString() + ' bytes';
-//                 return label;
-//               }
-//             }
-//           }
-//         },
-//         scales: {
-//           x: { 
-//             ticks: { color: '#888' }, 
-//             grid: { color: 'rgba(255,255,255,0.05)' } 
-//           },
-//           y: { 
-//             ticks: { color: '#888' }, 
-//             grid: { color: 'rgba(255,255,255,0.05)' },
-//             title: {
-//               display: true,
-//               text: 'Bytes',
-//               color: '#888'
-//             }
-//           }
-//         }
-//       }
-//     });
-    
-//     // Gráfico de Economia
-//     const economiaPerc = data.economia_percentual || 0;
-//     const ctxEconomia = document.getElementById('graficoEconomia').getContext('2d');
-    
-//     graficoEconomia = new Chart(ctxEconomia, {
-//       type: 'doughnut',
-//       data: {
-//         labels: ['Economia MIR', 'Tamanho restante'],
-//         datasets: [{
-//           data: [economiaPerc, 100 - economiaPerc],
-//           backgroundColor: [
-//             'rgba(62, 207, 142, 0.85)',
-//             'rgba(255, 255, 255, 0.06)'
-//           ],
-//           borderColor: [
-//             'rgba(62, 207, 142, 1)',
-//             'rgba(255, 255, 255, 0.08)'
-//           ],
-//           borderWidth: 1
-//         }]
-//       },
-//       options: {
-//         cutout: '72%',
-//         maintainAspectRatio: true,
-//         plugins: {
-//           legend: { display: false },
-//           tooltip: { 
-//             callbacks: {
-//               label: function(context) {
-//                 return `${context.label}: ${context.raw.toFixed(1)}%`;
-//               }
-//             }
-//           }
-//         }
-//       },
-//       plugins: [{
-//         id: 'centroEconomia',
-//         afterDraw(chart) {
-//           const { ctx, chartArea: { top, left, width, height } } = chart;
-//           ctx.save();
-//           ctx.textAlign = 'center';
-//           ctx.textBaseline = 'middle';
-//           const cx = left + width / 2;
-//           const cy = top + height / 2;
-          
-//           ctx.font = 'bold 22px DM Sans, sans-serif';
-//           ctx.fillStyle = '#3ecf8e';
-//           ctx.fillText(economiaPerc.toFixed(1) + '%', cx, cy - 10);
-          
-//           ctx.font = '12px DM Sans, sans-serif';
-//           ctx.fillStyle = '#888';
-//           ctx.fillText('economia', cx, cy + 14);
-          
-//           ctx.restore();
-//         }
-//       }]
-//     });
-    
-//     // Exibir estatísticas em texto
-//     document.getElementById('stats').innerHTML = `
-// 📊 ESTATÍSTICAS DO BANCO DE DADOS
-
-// 📝 Tabela Normal:
-//    • Registros: ${data.normal.toLocaleString()}
-//    • Tamanho: ${formatarBytes(data.normal_bytes)}
-
-// 🔐 Tabela MIR:
-//    • Registros: ${data.mir.toLocaleString()}
-//    • Tamanho: ${formatarBytes(data.mir_bytes)}
-
-// 📚 Tabelas Lexicais:
-//    • Tamanho total: ${formatarBytes(data.lexical_bytes)}
-
-// 💾 Total MIR + Lexical:
-//    • Tamanho: ${formatarBytes(data.total_mir)}
-
-// 📈 Economia: ${economiaPerc.toFixed(1)}%
-//     `;
-    
-//   } catch (error) {
-//     console.error('Erro nas estatísticas:', error);
-//     document.getElementById('stats').innerHTML = `
-//       ❌ Erro ao carregar estatísticas: ${error.message}
-//     `;
-//   }
-// }
-
-// function formatarBytes(bytes) {
-//   if (bytes === 0) return '0 Bytes';
-//   const k = 1024;
-//   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-//   const i = Math.floor(Math.log(bytes) / Math.log(k));
-//   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-// }
 
 //--------------------------------------------------
 // LISTAR
@@ -642,22 +501,25 @@ async function confirmarLimpeza() {
       throw new Error(data.erro || 'Erro na limpeza');
     }
     
-    // Sucesso na limpeza - mostrar detalhes
+    // VERIFICAÇÃO DE SEGURANÇA: Garantir que registrosRemovidos existe
+    const removidos = data.registrosRemovidos || {};
+    
+    // Sucesso na limpeza - mostrar detalhes (com verificação de existência)
     statusDiv.innerHTML = `
       <div style="background: #4caf50; padding: 15px; border-radius: 8px; color: white;">
-        <strong>✅ ${data.mensagem}</strong>
+        <strong>✅ ${data.mensagem || 'Limpeza concluída com sucesso!'}</strong>
       </div>
       <div style="margin-top: 15px; font-size: 13px; background: #1a1a1a; padding: 12px; border-radius: 6px;">
         <strong>📊 Registros removidos:</strong><br>
-        <span style="color: #ff6b6b;">🗑️ pessoas_normal:</span> ${(data.registrosRemovidos.pessoas_normal || 0).toLocaleString()}<br>
-        <span style="color: #ff6b6b;">🗑️ pessoas_mir:</span> ${(data.registrosRemovidos.pessoas_mir || 0).toLocaleString()}<br>
-        <span style="color: #ff6b6b;">🗑️ lexical_nome:</span> ${(data.registrosRemovidos.lexical_nome || 0).toLocaleString()}<br>
-        <span style="color: #ff6b6b;">🗑️ lexical_sobrenome:</span> ${(data.registrosRemovidos.lexical_sobrenome || 0).toLocaleString()}<br>
-        <span style="color: #ff6b6b;">🗑️ lexical_rua:</span> ${(data.registrosRemovidos.lexical_rua || 0).toLocaleString()}<br>
-        <span style="color: #ff6b6b;">🗑️ lexical_cidade:</span> ${(data.registrosRemovidos.lexical_cidade || 0).toLocaleString()}<br>
-        <span style="color: #ff6b6b;">🗑️ lexical_cep:</span> ${(data.registrosRemovidos.lexical_cep || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ pessoas_normal:</span> ${(removidos.pessoas_normal || removidos.normal || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ pessoas_mir:</span> ${(removidos.pessoas_mir || removidos.mir || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_nome:</span> ${(removidos.lexical_nome || removidos.nome || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_sobrenome:</span> ${(removidos.lexical_sobrenome || removidos.sobrenome || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_rua:</span> ${(removidos.lexical_rua || removidos.rua || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_cidade:</span> ${(removidos.lexical_cidade || removidos.cidade || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_cep:</span> ${(removidos.lexical_cep || removidos.cep || 0).toLocaleString()}<br>
         <hr style="margin: 8px 0; border-color: #333;">
-        <strong>✅ TOTAL:</strong> ${Object.values(data.registrosRemovidos).reduce((a,b) => a + (b || 0), 0).toLocaleString()} registros
+        <strong>✅ TOTAL:</strong> ${Object.values(removidos).reduce((a,b) => a + (b || 0), 0).toLocaleString()} registros
       </div>
       <div style="margin-top: 10px; font-size: 12px; color: #4caf50;">
         <strong>✓ Verificação pós-limpeza:</strong> Todas as tabelas estão vazias
@@ -683,7 +545,7 @@ async function confirmarLimpeza() {
       
       // Limpar resultado após 5 segundos
       setTimeout(() => {
-        if (resultadoDiv.innerHTML.includes('Banco de Dados Totalmente Limpo')) {
+        if (resultadoDiv.innerHTML && resultadoDiv.innerHTML.includes('Banco de Dados Totalmente Limpo')) {
           resultadoDiv.innerHTML = '';
         }
       }, 5000);
@@ -692,6 +554,106 @@ async function confirmarLimpeza() {
   } catch (error) {
     console.error('Erro na limpeza:', error);
     statusDiv.innerHTML = `<p style="color: #ff6b6b;">❌ ${error.message}</p>`;
+  }
+}
+
+//--------------------------------------------------
+// FUNÇÕES DE SEED (POPULAR DADOS)
+//--------------------------------------------------
+
+function abrirModalSeed() {
+  const modal = document.getElementById('modalSeed');
+  modal.style.display = 'flex';
+  document.getElementById('senhaSeed').value = '';
+  document.getElementById('statusSeed').innerHTML = '';
+}
+
+function fecharModalSeed() {
+  const modal = document.getElementById('modalSeed');
+  modal.style.display = 'none';
+}
+
+async function confirmarSeed() {
+  const senha = document.getElementById('senhaSeed').value;
+  const quantidade = document.getElementById('quantidadeRegistros').value;
+  const statusDiv = document.getElementById('statusSeed');
+  
+  if (!senha) {
+    statusDiv.innerHTML = '<p style="color: #ff6b6b;">❌ Digite a senha de administrador!</p>';
+    return;
+  }
+  
+  // Mostrar loading
+  statusDiv.innerHTML = '<div class="loading-spinner"></div><p style="margin-top: 10px;">Populando banco de dados...</p>';
+  
+  try {
+    const response = await fetch('/admin/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        senha: senha,
+        quantidade: parseInt(quantidade)
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.erro || 'Erro na população');
+    }
+    
+    statusDiv.innerHTML = `
+      <div style="background: #4caf50; padding: 15px; border-radius: 8px; color: white;">
+        <strong>✅ ${data.mensagem}</strong>
+      </div>
+      <div style="margin-top: 15px; font-size: 13px; background: #1a1a1a; padding: 12px; border-radius: 6px;">
+        <strong>📊 Resumo:</strong><br>
+        <span style="color: #4caf50;">✅ Registros inseridos:</span> ${data.registrosInseridos}<br>
+        <span style="color: #2196f3;">🔑 Tokens utilizados:</span><br>
+        &nbsp;&nbsp;• Nomes: ${data.tokensUtilizados.lexical_nome}<br>
+        &nbsp;&nbsp;• Sobrenomes: ${data.tokensUtilizados.lexical_sobrenome}<br>
+        &nbsp;&nbsp;• Ruas: ${data.tokensUtilizados.lexical_rua}<br>
+        &nbsp;&nbsp;• Cidades: ${data.tokensUtilizados.lexical_cidade}<br>
+        &nbsp;&nbsp;• CEPs: ${data.tokensUtilizados.lexical_cep}
+      </div>
+    `;
+    
+    // Fechar modal após 2 segundos e atualizar
+    setTimeout(() => {
+      fecharModalSeed();
+      listar();
+      estatisticas();
+      
+      const resultadoDiv = document.getElementById('resultado');
+      resultadoDiv.innerHTML = `
+        <div style="background: #4caf50; padding: 20px; border-radius: 8px; color: white; text-align: center;">
+          <h3>✅ Banco Populado com Sucesso!</h3>
+          <p>${data.registrosInseridos} registros foram adicionados.</p>
+        </div>
+      `;
+      
+      setTimeout(() => {
+        if (resultadoDiv.innerHTML && resultadoDiv.innerHTML.includes('Banco Populado')) {
+          resultadoDiv.innerHTML = '';
+        }
+      }, 3000);
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Erro na população:', error);
+    statusDiv.innerHTML = `<p style="color: #ff6b6b;">❌ ${error.message}</p>`;
+  }
+}
+
+// Atualizar a função de fechar modal clicando fora
+window.onclick = function(event) {
+  const modalLimpeza = document.getElementById('modalLimpeza');
+  const modalSeed = document.getElementById('modalSeed');
+  if (event.target === modalLimpeza) {
+    fecharModalLimpeza();
+  }
+  if (event.target === modalSeed) {
+    fecharModalSeed();
   }
 }
 

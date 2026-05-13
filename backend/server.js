@@ -59,95 +59,56 @@ app.post('/admin/limpar', async (req, res) => {
     // Iniciar transação
     await client.query('BEGIN');
     
-    // Contar registros antes da limpeza (TODAS as tabelas)
+    // Contar registros antes da limpeza
     const statsAntes = await client.query(`
       SELECT 
-        'pessoas_normal' as tabela, COUNT(*) as total FROM pessoas_normal
-      UNION ALL
-      SELECT 'pessoas_mir', COUNT(*) FROM pessoas_mir
-      UNION ALL
-      SELECT 'lexical_nome', COUNT(*) FROM lexical_nome
-      UNION ALL
-      SELECT 'lexical_sobrenome', COUNT(*) FROM lexical_sobrenome
-      UNION ALL
-      SELECT 'lexical_rua', COUNT(*) FROM lexical_rua
-      UNION ALL
-      SELECT 'lexical_cidade', COUNT(*) FROM lexical_cidade
-      UNION ALL
-      SELECT 'lexical_cep', COUNT(*) FROM lexical_cep
+        (SELECT COUNT(*) FROM pessoas_normal) as pessoas_normal,
+        (SELECT COUNT(*) FROM pessoas_mir) as pessoas_mir,
+        (SELECT COUNT(*) FROM lexical_nome) as lexical_nome,
+        (SELECT COUNT(*) FROM lexical_sobrenome) as lexical_sobrenome,
+        (SELECT COUNT(*) FROM lexical_rua) as lexical_rua,
+        (SELECT COUNT(*) FROM lexical_cidade) as lexical_cidade,
+        (SELECT COUNT(*) FROM lexical_cep) as lexical_cep
     `);
     
-    // Desabilitar constraints temporariamente para garantir limpeza
-    await client.query('SET CONSTRAINTS ALL DEFERRED');
+    // Limpar TODAS as tabelas usando TRUNCATE (mais rápido e reseta sequências)
+    await client.query('TRUNCATE TABLE pessoas_mir CASCADE');
+    await client.query('TRUNCATE TABLE pessoas_normal CASCADE');
+    await client.query('TRUNCATE TABLE lexical_nome CASCADE');
+    await client.query('TRUNCATE TABLE lexical_sobrenome CASCADE');
+    await client.query('TRUNCATE TABLE lexical_rua CASCADE');
+    await client.query('TRUNCATE TABLE lexical_cidade CASCADE');
+    await client.query('TRUNCATE TABLE lexical_cep CASCADE');
     
-    // Limpar TODAS as tabelas na ordem correta (primeiro as que têm FK)
-    console.log('🗑️ Removendo registros das tabelas...');
-    
-    // 1. Limpar tabelas que têm foreign keys primeiro
-    await client.query('DELETE FROM pessoas_mir');
-    console.log('  ✅ pessoas_mir limpa');
-    
-    await client.query('DELETE FROM pessoas_normal');
-    console.log('  ✅ pessoas_normal limpa');
-    
-    // 2. Limpar tabelas lexicais
-    await client.query('DELETE FROM lexical_nome');
-    console.log('  ✅ lexical_nome limpa');
-    
-    await client.query('DELETE FROM lexical_sobrenome');
-    console.log('  ✅ lexical_sobrenome limpa');
-    
-    await client.query('DELETE FROM lexical_rua');
-    console.log('  ✅ lexical_rua limpa');
-    
-    await client.query('DELETE FROM lexical_cidade');
-    console.log('  ✅ lexical_cidade limpa');
-    
-    await client.query('DELETE FROM lexical_cep');
-    console.log('  ✅ lexical_cep limpa');
-    
-    // 3. Resetar todas as sequências (IDs)
-    console.log('🔄 Resetando sequências...');
-    
-    await client.query('ALTER SEQUENCE IF EXISTS pessoas_normal_id_seq RESTART WITH 1');
-    await client.query('ALTER SEQUENCE IF EXISTS pessoas_mir_id_seq RESTART WITH 1');
-    await client.query('ALTER SEQUENCE IF EXISTS lexical_nome_id_seq RESTART WITH 1');
-    await client.query('ALTER SEQUENCE IF EXISTS lexical_sobrenome_id_seq RESTART WITH 1');
-    await client.query('ALTER SEQUENCE IF EXISTS lexical_rua_id_seq RESTART WITH 1');
-    await client.query('ALTER SEQUENCE IF EXISTS lexical_cidade_id_seq RESTART WITH 1');
-    await client.query('ALTER SEQUENCE IF EXISTS lexical_cep_id_seq RESTART WITH 1');
-    
-    console.log('  ✅ Todas as sequências resetadas');
-    
-    // 4. Verificar se realmente limpou tudo
-    const verificacao = await client.query(`
-      SELECT 
-        (SELECT COUNT(*) FROM pessoas_normal) as normal,
-        (SELECT COUNT(*) FROM pessoas_mir) as mir,
-        (SELECT COUNT(*) FROM lexical_nome) as nome,
-        (SELECT COUNT(*) FROM lexical_sobrenome) as sobrenome,
-        (SELECT COUNT(*) FROM lexical_rua) as rua,
-        (SELECT COUNT(*) FROM lexical_cidade) as cidade,
-        (SELECT COUNT(*) FROM lexical_cep) as cep
-    `);
+    // Resetar sequências (garantia extra)
+    await client.query("SELECT setval('pessoas_normal_id_seq', 1, false)");
+    await client.query("SELECT setval('lexical_nome_id_seq', 1, false)");
+    await client.query("SELECT setval('lexical_sobrenome_id_seq', 1, false)");
+    await client.query("SELECT setval('lexical_rua_id_seq', 1, false)");
+    await client.query("SELECT setval('lexical_cidade_id_seq', 1, false)");
+    await client.query("SELECT setval('lexical_cep_id_seq', 1, false)");
     
     // Commit da transação
     await client.query('COMMIT');
     
-    console.log('✅ LIMPEZA TOTAL CONCLUÍDA COM SUCESSO!');
-    console.log('📊 Verificação pós-limpeza:', verificacao.rows[0]);
+    // Preparar objeto de retorno
+    const registrosRemovidos = {
+      pessoas_normal: parseInt(statsAntes.rows[0].pessoas_normal || 0),
+      pessoas_mir: parseInt(statsAntes.rows[0].pessoas_mir || 0),
+      lexical_nome: parseInt(statsAntes.rows[0].lexical_nome || 0),
+      lexical_sobrenome: parseInt(statsAntes.rows[0].lexical_sobrenome || 0),
+      lexical_rua: parseInt(statsAntes.rows[0].lexical_rua || 0),
+      lexical_cidade: parseInt(statsAntes.rows[0].lexical_cidade || 0),
+      lexical_cep: parseInt(statsAntes.rows[0].lexical_cep || 0)
+    };
     
-    // Preparar relatório de registros removidos
-    const registrosRemovidos = {};
-    statsAntes.rows.forEach(row => {
-      registrosRemovidos[row.tabela] = parseInt(row.total);
-    });
+    console.log('✅ LIMPEZA TOTAL CONCLUÍDA!');
+    console.log('📊 Registros removidos:', registrosRemovidos);
     
     res.json({ 
       sucesso: true, 
-      mensagem: 'Todas as tabelas foram limpas com sucesso!',
+      mensagem: 'Todas as tabelas foram limpas com sucesso! Os IDs foram resetados.',
       registrosRemovidos: registrosRemovidos,
-      verificacao: verificacao.rows[0],
       timestamp: new Date().toISOString()
     });
     
@@ -156,6 +117,213 @@ app.post('/admin/limpar', async (req, res) => {
     console.error('❌ Erro na limpeza:', error);
     res.status(500).json({ 
       erro: 'Erro ao limpar banco de dados', 
+      detalhe: error.message 
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================================
+// 🌱 ENDPOINT SEGURO PARA POPULAR TABELAS (SEED)
+// ============================================================
+app.post('/admin/seed', async (req, res) => {
+  const { senha } = req.body;
+  const chaveSecreta = process.env.ADMIN_CLEAN_KEY;
+  
+  // Verificar se a chave está configurada
+  if (!chaveSecreta) {
+    return res.status(500).json({ 
+      erro: 'Sistema de seed não configurado. Contate o administrador.' 
+    });
+  }
+  
+  // Validar senha (mesma chave da limpeza)
+  if (senha !== chaveSecreta) {
+    return res.status(403).json({ 
+      erro: 'Senha de administrador inválida. Acesso negado.' 
+    });
+  }
+  
+  const { quantidade = 100 } = req.body; // Padrão 100 registros
+  
+  if (quantidade > 10000) {
+    return res.status(400).json({ 
+      erro: 'Quantidade máxima permitida é 10.000 registros por vez.' 
+    });
+  }
+  
+  const client = await pool.connect();
+  
+  try {
+    console.log(`🌱 INICIANDO POPULAÇÃO DE ${quantidade} REGISTROS...`);
+    console.log(`👤 Autorizado por: ${req.ip} em ${new Date().toISOString()}`);
+    
+    await client.query('BEGIN');
+    
+    // Massas de dados
+    const nomes = [
+      'José', 'Maria', 'João', 'Ana', 'Carlos', 'Lucas', 'Fernanda', 'Paulo', 
+      'Juliana', 'Ricardo', 'Patrícia', 'Roberto', 'Cristina', 'André', 'Camila',
+      'Beatriz', 'Rafael', 'Amanda', 'Diego', 'Larissa', 'Thiago', 'Vanessa'
+    ];
+    
+    const sobrenomesLista = [
+      'Silva', 'Souza', 'Oliveira', 'Alencar', 'Batista', 'Costa', 'Pereira', 
+      'Rodrigues', 'Amorim', 'Lacerda', 'Ferreira', 'Almeida', 'Nascimento', 'Lima'
+    ];
+    
+    const ruas = [
+      'Rua das Flores', 'Rua Carlos Lacerda', 'Rua Central', 'Rua A', 'Rua B', 
+      'Rua das Palmeiras', 'Avenida Brasil', 'Rua 1', 'Rua 2', 'Rua 3'
+    ];
+    
+    const cidades = [
+      'Volta Redonda', 'Barra Mansa', 'Resende', 'Rio de Janeiro', 'São Paulo'
+    ];
+    
+    const ceps = ['27220110', '27255120', '20040002', '27500000', '01001000'];
+    
+    // Funções auxiliares
+    const random = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    
+    const encodeBase62 = (numero) => {
+      const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      if (numero === 0) return '0';
+      let resultado = '';
+      let n = numero;
+      while (n > 0) {
+        resultado = chars[n % 62] + resultado;
+        n = Math.floor(n / 62);
+      }
+      return resultado;
+    };
+    
+    const gerarCPF = () => {
+      let numeros = '';
+      for (let i = 0; i < 9; i++) {
+        numeros += Math.floor(Math.random() * 10);
+      }
+      let soma1 = 0;
+      for (let i = 0; i < 9; i++) {
+        soma1 += parseInt(numeros[i]) * (10 - i);
+      }
+      let resto1 = (soma1 * 10) % 11;
+      if (resto1 === 10) resto1 = 0;
+      let soma2 = 0;
+      const parcial = numeros + resto1;
+      for (let i = 0; i < 10; i++) {
+        soma2 += parseInt(parcial[i]) * (11 - i);
+      }
+      let resto2 = (soma2 * 10) % 11;
+      if (resto2 === 10) resto2 = 0;
+      return numeros + resto1 + resto2;
+    };
+    
+    const tokenProgressivo = (prefixo, numero) => {
+      return `${prefixo}${encodeBase62(numero)}`;
+    };
+    
+    // Buscar ou criar token
+    const obterOuCriarToken = async (tabela, prefixo, valor, contadores) => {
+      if (!valor || valor.trim() === '') return null;
+      valor = valor.trim();
+      
+      const busca = await client.query(`
+        SELECT token FROM ${tabela} WHERE LOWER(valor) = LOWER($1)
+      `, [valor]);
+      
+      if (busca.rows.length > 0) {
+        return busca.rows[0].token;
+      }
+      
+      const token = tokenProgressivo(prefixo, contadores[tabela]);
+      await client.query(`
+        INSERT INTO ${tabela} (token, valor, frequencia)
+        VALUES ($1, $2, 1)
+      `, [token, valor]);
+      
+      contadores[tabela]++;
+      return token;
+    };
+    
+    // Contadores
+    const contadores = {
+      'lexical_nome': 0,
+      'lexical_sobrenome': 0,
+      'lexical_rua': 0,
+      'lexical_cidade': 0,
+      'lexical_cep': 0
+    };
+    
+    // Buscar contadores atuais
+    for (const tabela of Object.keys(contadores)) {
+      const result = await client.query(`SELECT COUNT(*) FROM ${tabela}`);
+      contadores[tabela] = parseInt(result.rows[0].count);
+    }
+    
+    let inseridos = 0;
+    
+    for (let i = 0; i < quantidade; i++) {
+      // Gerar dados
+      const nome = random(nomes);
+      const sobrenome = `${random(sobrenomesLista)} ${random(sobrenomesLista)}`;
+      const rua = random(ruas);
+      const cidade = random(cidades);
+      const cep = random(ceps);
+      const casa = Math.floor(Math.random() * 9999) + 1;
+      const cpf = gerarCPF();
+      
+      // Inserir na tabela normal
+      const normalResult = await client.query(`
+        INSERT INTO pessoas_normal (nome, sobrenome, rua, casa, cidade, cep, cpf)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id
+      `, [nome, sobrenome, rua, casa, cidade, cep, cpf]);
+      
+      const pessoaId = normalResult.rows[0].id;
+      
+      // Tokenização
+      const nomeToken = await obterOuCriarToken('lexical_nome', 'N', nome, contadores);
+      const sobrenomeToken = await obterOuCriarToken('lexical_sobrenome', 'S', sobrenome, contadores);
+      const ruaToken = await obterOuCriarToken('lexical_rua', 'R', rua, contadores);
+      const cidadeToken = await obterOuCriarToken('lexical_cidade', 'C', cidade, contadores);
+      const cepToken = await obterOuCriarToken('lexical_cep', 'E', cep, contadores);
+      
+      // CPF compactado (apenas 9 primeiros dígitos)
+      const cpfBase = cpf.substring(0, 9);
+      const cpfCompactado = encodeBase62(parseInt(cpfBase, 10));
+      
+      // Inserir na tabela MIR
+      await client.query(`
+        INSERT INTO pessoas_mir (id, nome_token, sobrenome_token, rua_token, casa, cidade_token, cep_token, cpf_mne)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [pessoaId, nomeToken, sobrenomeToken, ruaToken, casa, cidadeToken, cepToken, cpfCompactado]);
+      
+      inseridos++;
+      
+      if ((i + 1) % 100 === 0) {
+        console.log(`   ${i + 1} registros inseridos...`);
+      }
+    }
+    
+    await client.query('COMMIT');
+    
+    console.log(`✅ POPULAÇÃO CONCLUÍDA! ${inseridos} registros inseridos.`);
+    
+    res.json({ 
+      sucesso: true, 
+      mensagem: `${inseridos} registros inseridos com sucesso!`,
+      registrosInseridos: inseridos,
+      tokensUtilizados: contadores,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ Erro na população:', error);
+    res.status(500).json({ 
+      erro: 'Erro ao popular banco de dados', 
       detalhe: error.message 
     });
   } finally {
