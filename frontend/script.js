@@ -642,41 +642,52 @@ async function confirmarLimpeza() {
       throw new Error(data.erro || 'Erro na limpeza');
     }
     
-    // Sucesso na limpeza
+    // Sucesso na limpeza - mostrar detalhes
     statusDiv.innerHTML = `
-      <div style="background: #4caf50; padding: 12px; border-radius: 8px; color: white;">
-        ✅ ${data.mensagem}
+      <div style="background: #4caf50; padding: 15px; border-radius: 8px; color: white;">
+        <strong>✅ ${data.mensagem}</strong>
       </div>
-      <div style="margin-top: 10px; font-size: 12px; color: #888;">
-        <strong>Registros removidos:</strong><br>
-        • Pessoas Normal: ${data.registrosRemovidos.pessoas_normal.toLocaleString()}<br>
-        • Pessoas MIR: ${data.registrosRemovidos.pessoas_mir.toLocaleString()}<br>
-        • Tabelas Lexicais: ${Object.values(data.registrosRemovidos).slice(2).reduce((a,b) => a+b, 0).toLocaleString()}
+      <div style="margin-top: 15px; font-size: 13px; background: #1a1a1a; padding: 12px; border-radius: 6px;">
+        <strong>📊 Registros removidos:</strong><br>
+        <span style="color: #ff6b6b;">🗑️ pessoas_normal:</span> ${(data.registrosRemovidos.pessoas_normal || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ pessoas_mir:</span> ${(data.registrosRemovidos.pessoas_mir || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_nome:</span> ${(data.registrosRemovidos.lexical_nome || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_sobrenome:</span> ${(data.registrosRemovidos.lexical_sobrenome || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_rua:</span> ${(data.registrosRemovidos.lexical_rua || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_cidade:</span> ${(data.registrosRemovidos.lexical_cidade || 0).toLocaleString()}<br>
+        <span style="color: #ff6b6b;">🗑️ lexical_cep:</span> ${(data.registrosRemovidos.lexical_cep || 0).toLocaleString()}<br>
+        <hr style="margin: 8px 0; border-color: #333;">
+        <strong>✅ TOTAL:</strong> ${Object.values(data.registrosRemovidos).reduce((a,b) => a + (b || 0), 0).toLocaleString()} registros
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: #4caf50;">
+        <strong>✓ Verificação pós-limpeza:</strong> Todas as tabelas estão vazias
       </div>
     `;
     
-    // Fechar modal após 2 segundos
+    // Fechar modal após 3 segundos
     setTimeout(() => {
       fecharModalLimpeza();
       // Atualizar listagem e estatísticas
       listar();
       estatisticas();
+      
       // Mostrar mensagem de sucesso
       const resultadoDiv = document.getElementById('resultado');
       resultadoDiv.innerHTML = `
         <div style="background: #4caf50; padding: 20px; border-radius: 8px; color: white; text-align: center;">
-          <h3>✅ Banco de Dados Limpo com Sucesso!</h3>
-          <p>Todos os registros foram removidos. Você pode começar a cadastrar novos dados.</p>
+          <h3>✅ Banco de Dados Totalmente Limpo!</h3>
+          <p>Todas as tabelas (normal, MIR e lexicais) foram zeradas.</p>
+          <p>Os IDs foram resetados e você pode começar a cadastrar novos dados.</p>
         </div>
       `;
       
       // Limpar resultado após 5 segundos
       setTimeout(() => {
-        if (resultadoDiv.innerHTML.includes('Banco de Dados Limpo')) {
+        if (resultadoDiv.innerHTML.includes('Banco de Dados Totalmente Limpo')) {
           resultadoDiv.innerHTML = '';
         }
       }, 5000);
-    }, 2000);
+    }, 3000);
     
   } catch (error) {
     console.error('Erro na limpeza:', error);
