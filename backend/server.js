@@ -291,7 +291,7 @@ app.post('/admin/seed', async (req, res) => {
       const rua = random(ruas);
       const cidade = random(cidades);
       const cep = random(ceps);
-      const casa = Math.floor(Math.random() * 9999) + 1;
+      const casa = crypto.randomInt(1, 10000);
       const cpf = gerarCPF();
       
       // Inserir na tabela normal
