@@ -222,7 +222,7 @@ app.post('/admin/seed', async (req, res) => {
     const gerarCPF = () => {
       let numeros = '';
       for (let i = 0; i < 9; i++) {
-        numeros += Math.floor(Math.random() * 10);
+        numeros += crypto.randomInt(0, 10);
       }
       let soma1 = 0;
       for (let i = 0; i < 9; i++) {
