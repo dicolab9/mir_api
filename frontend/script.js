@@ -11,7 +11,7 @@ function gerarCPF() {
   
   let soma1 = 0;
   for (let i = 0; i < 9; i++) {
-    soma1 += parseInt(numeros[i]) * (10 - i);
+    soma1 += Number.parseInt(numeros[i]) * (10 - i);
   }
   
   let resto1 = (soma1 * 10) % 11;
@@ -20,7 +20,7 @@ function gerarCPF() {
   let soma2 = 0;
   const parcial = numeros + resto1;
   for (let i = 0; i < 10; i++) {
-    soma2 += parseInt(parcial[i]) * (11 - i);
+    soma2 += Number.parseInt(parcial[i]) * (11 - i);
   }
   
   let resto2 = (soma2 * 10) % 11;
@@ -346,81 +346,8 @@ function formatarBytes(bytes) {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
-
-//--------------------------------------------------
-// LISTAR
-//--------------------------------------------------
-
-// async function listar() {
-//   try {
-//     const response = await fetch('/listar');
-//     const data = await response.json();
-    
-//     if (!response.ok) {
-//       throw new Error(data.erro || 'Erro na listagem');
-//     }
-    
-//     const container = document.getElementById('lista');
-//     container.innerHTML = '';
-    
-//     if (data.dados.length === 0) {
-//       container.innerHTML = '<p style="text-align: center; color: #888;">Nenhum registro encontrado</p>';
-//       document.getElementById('tempo').innerHTML = '';
-//       return;
-//     }
-    
-//     data.dados.forEach(pessoa => {
-//       container.innerHTML += `
-//         <div class="card" style="
-//           background: #1a1a1a;
-//           border-radius: 8px;
-//           padding: 15px;
-//           margin-bottom: 15px;
-//           border-left: 4px solid #7c6fff;
-//         ">
-//           <h3 style="margin: 0 0 10px 0; color: #7c6fff;">
-//             ${escapeHtml(pessoa.nome)} ${escapeHtml(pessoa.sobrenome)}
-//           </h3>
-//           <p><strong>🏠 Rua:</strong> ${escapeHtml(pessoa.rua)}, ${escapeHtml(pessoa.casa)}</p>
-//           <p><strong>🌆 Cidade:</strong> ${escapeHtml(pessoa.cidade)}</p>
-//           <p><strong>📮 CEP:</strong> ${escapeHtml(pessoa.cep)}</p>
-//           <p><strong>📄 CPF:</strong> ${escapeHtml(pessoa.cpf)}</p>
-//           <button 
-//             class="danger" 
-//             onclick="excluir(${pessoa.id})"
-//             style="
-//               background: #d32f2f;
-//               color: white;
-//               border: none;
-//               padding: 8px 16px;
-//               border-radius: 4px;
-//               cursor: pointer;
-//               margin-top: 10px;
-//             "
-//             onmouseover="this.style.background='#f44336'"
-//             onmouseout="this.style.background='#d32f2f'"
-//           >
-//             🗑️ Excluir
-//           </button>
-//         </div>
-//       `;
-//     });
-    
-//     document.getElementById('tempo').innerHTML = `
-//       <p style="text-align: right; color: #888; font-size: 12px;">
-//         ⏱️ Tempo de execução: ${data.tempo_execucao_ms} ms
-//       </p>
-//     `;
-    
-//   } catch (error) {
-//     console.error('Erro na listagem:', error);
-//     document.getElementById('lista').innerHTML = `
-//       <p style="color: #f44336;">❌ Erro ao listar registros: ${error.message}</p>
-//     `;
-//   }
-// }
 
 // Variáveis globais para paginação
 let paginaAtual = 1;
@@ -618,7 +545,7 @@ function proximaPagina() {
 }
 
 function mudarLimite() {
-  const novoLimite = parseInt(document.getElementById('limitePorPagina').value);
+  const novoLimite = Number.parseInt(document.getElementById('limitePorPagina').value);
   if (novoLimite !== limitePorPagina) {
     limitePorPagina = novoLimite;
     paginaAtual = 1; // Reset para primeira página
@@ -667,36 +594,6 @@ function escapeHtml(texto) {
   div.textContent = texto;
   return div.innerHTML;
 }
-
-//--------------------------------------------------
-// EXCLUIR
-//--------------------------------------------------
-
-// async function excluir(id) {
-//   const confirmar = confirm('⚠️ Deseja realmente excluir este registro?\n\nEsta ação não pode ser desfeita!');
-  
-//   if (!confirmar) return;
-  
-//   try {
-//     const response = await fetch(`/excluir/${id}`, { 
-//       method: 'DELETE' 
-//     });
-    
-//     const data = await response.json();
-    
-//     if (!response.ok) {
-//       throw new Error(data.erro || 'Erro na exclusão');
-//     }
-    
-//     alert('✅ Registro excluído com sucesso!');
-//     await listar();
-//     await estatisticas();
-    
-//   } catch (error) {
-//     console.error('Erro na exclusão:', error);
-//     alert(`❌ Erro ao excluir: ${error.message}`);
-//   }
-// }
 
 //--------------------------------------------------
 // FUNÇÕES DE LIMPEZA SEGURA
@@ -831,7 +728,7 @@ async function confirmarSeed() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         senha: senha,
-        quantidade: parseInt(quantidade)
+        quantidade: Number.parseInt(quantidade)
       })
     });
     
