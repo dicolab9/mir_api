@@ -1,5 +1,6 @@
 // seed/seed_mir.js
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 // Carregar .env da PASTA RAIZ
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
@@ -60,32 +61,41 @@ function encodeBase62(numero) {
 
 function gerarCPF() {
   let numeros = '';
+
   for (let i = 0; i < 9; i++) {
-    numeros += Math.floor(Math.random() * 10);
+    numeros += crypto.randomInt(0, 10);
   }
-  
+
   let soma1 = 0;
+
   for (let i = 0; i < 9; i++) {
-    soma1 += Number.parseInt(numeros[i]) * (10 - i);
+    soma1 += Number.parseInt(numeros[i], 10) * (10 - i);
   }
-  
+
   let resto1 = (soma1 * 10) % 11;
-  if (resto1 === 10) resto1 = 0;
-  
+
+  if (resto1 === 10) {
+    resto1 = 0;
+  }
+
   let soma2 = 0;
   const parcial = numeros + resto1;
+
   for (let i = 0; i < 10; i++) {
-    soma2 += Number.parseInt(parcial[i]) * (11 - i);
+    soma2 += Number.parseInt(parcial[i], 10) * (11 - i);
   }
-  
+
   let resto2 = (soma2 * 10) % 11;
-  if (resto2 === 10) resto2 = 0;
-  
+
+  if (resto2 === 10) {
+    resto2 = 0;
+  }
+
   return numeros + resto1 + resto2;
 }
 
 function random(lista) {
-  return lista[Math.floor(Math.random() * lista.length)];
+  return lista[crypto.randomInt(0, lista.length)];
 }
 
 //--------------------------------------------------
@@ -201,7 +211,7 @@ async function popular() {
         const rua = random(ruas);
         const cidade = random(cidades);
         const cep = random(ceps);
-        const casa = Math.floor(Math.random() * 9999) + 1;
+        const casa = crypto.randomInt(1, 10000);
         const cpf = gerarCPF();
         
         // Inserir na tabela normal
@@ -288,7 +298,7 @@ async function exibirEstatisticas() {
     
     console.log(`📝 Registros Normal: ${Number.parseInt(totalNormal.rows[0].count).toLocaleString()}`);
     console.log(`🔐 Registros MIR: ${Number.parseInt(totalMir.rows[0].count).toLocaleString()}`);
-    console.log(`📚 Tokens Nomes: ${NUmber.parseInt(totalNomes.rows[0].count).toLocaleString()}`);
+    console.log(`📚 Tokens Nomes: ${Number.parseInt(totalNomes.rows[0].count).toLocaleString()}`);
     console.log(`📚 Tokens Sobrenomes: ${Number.parseInt(totalSobrenomes.rows[0].count).toLocaleString()}`);
     console.log(`📚 Tokens Ruas: ${Number.parseInt(totalRuas.rows[0].count).toLocaleString()}`);
     console.log(`📚 Tokens Cidades: ${Number.parseInt(totalCidades.rows[0].count).toLocaleString()}`);
