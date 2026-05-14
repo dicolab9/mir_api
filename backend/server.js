@@ -93,13 +93,13 @@ app.post('/admin/limpar', async (req, res) => {
     
     // Preparar objeto de retorno
     const registrosRemovidos = {
-      pessoas_normal: parseInt(statsAntes.rows[0].pessoas_normal || 0),
-      pessoas_mir: parseInt(statsAntes.rows[0].pessoas_mir || 0),
-      lexical_nome: parseInt(statsAntes.rows[0].lexical_nome || 0),
-      lexical_sobrenome: parseInt(statsAntes.rows[0].lexical_sobrenome || 0),
-      lexical_rua: parseInt(statsAntes.rows[0].lexical_rua || 0),
-      lexical_cidade: parseInt(statsAntes.rows[0].lexical_cidade || 0),
-      lexical_cep: parseInt(statsAntes.rows[0].lexical_cep || 0)
+      pessoas_normal: Number.parseInt(statsAntes.rows[0].pessoas_normal || 0),
+      pessoas_mir: Number.parseInt(statsAntes.rows[0].pessoas_mir || 0),
+      lexical_nome: Number.parseInt(statsAntes.rows[0].lexical_nome || 0),
+      lexical_sobrenome: Number.parseInt(statsAntes.rows[0].lexical_sobrenome || 0),
+      lexical_rua: Number.parseInt(statsAntes.rows[0].lexical_rua || 0),
+      lexical_cidade: Number.parseInt(statsAntes.rows[0].lexical_cidade || 0),
+      lexical_cep: Number.parseInt(statsAntes.rows[0].lexical_cep || 0)
     };
     
     console.log('✅ LIMPEZA TOTAL CONCLUÍDA!');
@@ -206,14 +206,14 @@ app.post('/admin/seed', async (req, res) => {
       }
       let soma1 = 0;
       for (let i = 0; i < 9; i++) {
-        soma1 += parseInt(numeros[i]) * (10 - i);
+        soma1 += Number.parseInt(numeros[i]) * (10 - i);
       }
       let resto1 = (soma1 * 10) % 11;
       if (resto1 === 10) resto1 = 0;
       let soma2 = 0;
       const parcial = numeros + resto1;
       for (let i = 0; i < 10; i++) {
-        soma2 += parseInt(parcial[i]) * (11 - i);
+        soma2 += Number.parseInt(parcial[i]) * (11 - i);
       }
       let resto2 = (soma2 * 10) % 11;
       if (resto2 === 10) resto2 = 0;
@@ -259,7 +259,7 @@ app.post('/admin/seed', async (req, res) => {
     // Buscar contadores atuais
     for (const tabela of Object.keys(contadores)) {
       const result = await client.query(`SELECT COUNT(*) FROM ${tabela}`);
-      contadores[tabela] = parseInt(result.rows[0].count);
+      contadores[tabela] = Number.parseInt(result.rows[0].count);
     }
     
     let inseridos = 0;
@@ -292,7 +292,7 @@ app.post('/admin/seed', async (req, res) => {
       
       // CPF compactado (apenas 9 primeiros dígitos)
       const cpfBase = cpf.substring(0, 9);
-      const cpfCompactado = encodeBase62(parseInt(cpfBase, 10));
+      const cpfCompactado = encodeBase62(Number.parseInt(cpfBase, 10));
       
       // Inserir na tabela MIR
       await client.query(`
@@ -337,38 +337,3 @@ app.listen(PORT, () => {
   console.log(`Servidor MIR/MNE rodando na porta ${PORT}`);
   console.log(`🔒 Modo seguro: Limpeza requer senha administrativa`);
 });
-
-// const express = require('express');
-// const cors = require('cors');
-// const path = require('path');
-
-// require('dotenv').config();
-
-// const cadastroRoutes = require('./routes/cadastro.routes');
-// const listarRoutes = require('./routes/listar.routes');
-// const estatisticasRoutes = require('./routes/estatisticas.routes');
-// const excluirRoutes = require('./routes/excluir.routes');
-
-// const app = express();
-
-// app.disable('x-powered-by');
-
-// app.use(cors());
-// app.use(express.json());
-
-// app.use(express.static(path.join(__dirname, '../frontend')));
-
-// app.use('/cadastro', cadastroRoutes);
-// app.use('/listar', listarRoutes);
-// app.use('/estatisticas', estatisticasRoutes);
-// app.use('/excluir', excluirRoutes);
-
-// app.get('/', (req, res) => {
-//   res.sendFile(path.join(__dirname, '../frontend/index.html'));
-// });
-
-// const PORT = process.env.PORT || 3000;
-
-// app.listen(PORT, () => {
-//   console.log(`Servidor MIR/MNE rodando na porta ${PORT}`);
-// });
