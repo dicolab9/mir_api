@@ -1,5 +1,5 @@
 // seed/seed_mir.js
-const path = require('path');
+const path = require('node:path');
 
 // Carregar .env da PASTA RAIZ
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
@@ -352,7 +352,7 @@ async function main() {
     const testResult = await pool.query('SELECT NOW() as now');
     console.log(`✅ CONEXÃO ESTABELECIDA - ${testResult.rows[0].now}\n`);
     
-    const readline = require('readline').createInterface({
+    const readline = require('node:readline').createInterface({
       input: process.stdin,
       output: process.stdout
     });
