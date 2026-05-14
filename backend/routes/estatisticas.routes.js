@@ -5,7 +5,6 @@ router.get('/', async (req, res) => {
   try {
     // Contagem de registros
     const normalCount = await pool.query(`SELECT COUNT(*) FROM pessoas_normal`);
-    const mirCount = await pool.query(`SELECT COUNT(*) FROM pessoas_mir`);
     
     // Contagem de tokens únicos
     const tokensCount = await pool.query(`
@@ -81,7 +80,7 @@ router.get('/', async (req, res) => {
       mir_bytes: mirBytes,
       lexical_bytes: lexicalBytes,
       total_mir: totalMirBytes,
-      economia_percentual: parseFloat(economia),
+      economia_percentual: Number.parseFloat(economia),
       detalhes: {
         registros: totalRegistros,
         tokens_unicos: totalTokens,
