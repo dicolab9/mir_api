@@ -9,7 +9,7 @@
 function calcularPrimeiroDigito(base) {
   let soma = 0;
   for (let i = 0; i < 9; i++) {
-    soma += parseInt(base[i]) * (10 - i);
+    soma += Number.parseInt(base[i]) * (10 - i);
   }
   let resto = (soma * 10) % 11;
   return resto === 10 ? 0 : resto;
@@ -25,7 +25,7 @@ function calcularSegundoDigito(base, primeiroDigito) {
   const parcial = base + primeiroDigito;
   let soma = 0;
   for (let i = 0; i < 10; i++) {
-    soma += parseInt(parcial[i]) * (11 - i);
+    soma += Number.parseInt(parcial[i]) * (11 - i);
   }
   let resto = (soma * 10) % 11;
   return resto === 10 ? 0 : resto;
