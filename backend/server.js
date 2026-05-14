@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const pool = require('./config/db');
+const crypto = require('node:crypto');
 
 require('dotenv').config();
 
@@ -204,7 +205,7 @@ app.post('/admin/seed', async (req, res) => {
     const ceps = ['27220110', '27255120', '20040002', '27500000', '01001000'];
     
     // Funções auxiliares
-    const random = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const random = (arr) => arr[crypto.randomInt(0, arr.length)];
     
     const encodeBase62 = (numero) => {
       const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
